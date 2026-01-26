@@ -1,0 +1,27 @@
+﻿---
+title: Build validation
+order: 2
+section: API
+status: experimental
+version: 0.1.0-alpha
+---
+
+校验发生在 CI/CD 中，保障文档质量。
+
+## 校验清单
+
+- 断链（内部路由与锚点）
+- 重复标题
+- 孤儿页面
+- 无效元信息字段
+- 空目录
+
+## CI 集成
+
+在构建命令前运行 `validate:docs`，任何错误都会阻断构建。
+
+<Callout type="warning" title="强制规则">
+任何重复路由会导致构建失败。
+</Callout>
+
+

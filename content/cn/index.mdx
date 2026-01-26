@@ -1,0 +1,43 @@
+﻿---
+title: Overview
+order: 1
+section: Get started
+status: experimental
+version: 0.1.0-alpha
+---
+
+Typematter 是一个面向长期内部使用的文档壳，强调 **静态渲染 + 组件语义一致性**。内容以 MDX 为唯一真相，导航与路由从 `content/` 结构自动生成。
+
+## 目标
+
+- 以 Git 管理所有内容，保证可审计与可回溯
+- 以高层级视觉组件提升复杂信息表达力
+- 用结构化校验提升文档质量而非堆叠功能
+
+<Note title="内容即真相">
+所有页面都来自 `content/`。导航仅用于展示层重排，不能创建虚拟页面。
+</Note>
+
+## 架构原则
+
+<Columns>
+  <Column title="静态构建">
+    构建期解析 MDX，生成可缓存的静态产物，运行时只渲染与交互。
+  </Column>
+  <Column title="组件语义">
+    统一的 Callout、Diff、Columns 等组件保证全站语义一致。
+  </Column>
+</Columns>
+
+## 快速入口
+
+- [快速开始](./get-started/quickstart)
+- [组件体系](./core-concepts/components)
+- [构建校验](./api/build-validation)
+
+<Callout type="warning" title="注意">
+所有链接必须指向真实的 MDX 页面或外链，构建期会校验并阻断。
+</Callout>
+
+
+

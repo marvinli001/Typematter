@@ -1,0 +1,33 @@
+﻿---
+title: Navigation rules
+order: 2
+section: Core concepts
+status: experimental
+version: 0.1.0-alpha
+---
+
+导航树由 `content/` 目录结构与 frontmatter 共同生成。
+
+## 规则
+
+- 目录层级映射路由层级
+- `order` 控制同级排序
+- `section` 控制分组名称
+- `nav.config.ts` 仅用于展示重排
+
+<Callout type="note" title="关于 nav.config">
+nav 配置必须指向真实页面或外链，不能创建虚拟页面。
+</Callout>
+
+## 常见问题
+
+<Columns>
+  <Column title="为什么不手写侧边栏？">
+    手写侧边栏会造成信息源分裂，难以校验与追踪。
+  </Column>
+  <Column title="可以隐藏页面吗？">
+    可以在 nav 配置中标记 hidden，用于内部草稿或未发布页面。
+  </Column>
+</Columns>
+
+

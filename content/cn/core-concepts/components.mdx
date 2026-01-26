@@ -1,0 +1,60 @@
+﻿---
+title: Components
+order: 3
+section: Core concepts
+status: experimental
+version: 0.1.0-alpha
+---
+
+文档组件用于表达语义：提示、差异、结构化块、列布局等。
+
+## Callout
+
+Callout 用于提示类信息，建议按语义选择不同级别：
+
+- `Tip/Note`：白色提示块，适合轻量提醒或补充说明。
+- `Info`：蓝色提示块，适合稳定信息或一致性声明。
+- `Warning`：橙色提示块，适合风险提示或强约束。
+- `Deprecated`：红色提示块，适合弃用说明与迁移提醒。
+
+<Tip title="Tip">
+用于补充说明或小技巧提示。
+</Tip>
+
+<Info title="Info">
+用于稳定的规则或信息提示。
+</Info>
+
+<Warning title="Warning">
+用于风险提示或强约束。
+</Warning>
+
+<Deprecated title="Deprecated">
+用于标记弃用功能或迁移提醒。
+</Deprecated>
+
+## Columns
+
+<Columns>
+  <Column title="单列信息">
+    适用于并排展示概念或步骤。
+  </Column>
+  <Column title="结构化对比">
+    让读者快速理解差异点。
+  </Column>
+</Columns>
+
+## Diff Block
+
+用于并排对比两个方案/版本。`beforeLabel` 与 `afterLabel` 可选，必要时再显示顶部标签。
+
+<DiffBlock beforeLabel="旧行为" afterLabel="新行为">
+  <DiffColumn>
+    <code>cache: "manual"</code>
+    <p>需要手工维护缓存策略。</p>
+  </DiffColumn>
+  <DiffColumn highlight>
+    <code>cache: "filesystem"</code>
+    <p>自动与文件结构同步。</p>
+  </DiffColumn>
+</DiffBlock>

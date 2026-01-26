@@ -1,0 +1,60 @@
+﻿---
+title: Quickstart
+order: 2
+section: Get started
+status: experimental
+version: 0.1.0-alpha
+pager: true
+---
+
+本页带你理解内容目录、路由生成与组件注册。
+
+## 1. 目录结构
+
+```
+content/
+  get-started/
+    quickstart.mdx
+  core-concepts/
+    navigation.mdx
+```
+
+## 2. 添加页面
+
+```mdx
+---
+title: 项目结构
+order: 3
+section: Get started
+status: experimental
+version: 0.1.0-alpha
+---
+
+# 项目结构
+```
+
+<Callout type="note" title="前置字段">
+每个页面必须包含 `title`、`order`、`section`。`status`、`version` 与 `tags` 为可选字段，用于展示状态与标签气泡。
+</Callout>
+
+## 3. 版本差异示例
+
+<DiffBlock beforeLabel="v0.8" afterLabel="v0.9">
+  <DiffColumn>
+    <code>navStrategy: "manual"</code>
+    <p>手工维护侧边栏。</p>
+  </DiffColumn>
+  <DiffColumn highlight>
+    <code>navStrategy: "filesystem"</code>
+    <p>导航从目录结构自动生成。</p>
+  </DiffColumn>
+</DiffBlock>
+
+## 下一步
+
+- [导航规则](../core-concepts/navigation)
+- [组件规范](../core-concepts/components)
+
+
+
+

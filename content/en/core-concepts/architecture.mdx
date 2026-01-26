@@ -1,0 +1,24 @@
+﻿---
+title: Architecture
+order: 1
+section: Core concepts
+status: experimental
+version: 0.1.0-alpha
+---
+
+The static rendering model keeps docs cacheable, rollback-friendly, and auditable.
+
+## Parsing flow
+
+1. Scan `content/` at build time
+2. Parse frontmatter and headings
+3. Generate the navigation tree and route map
+4. Run quality validation
+
+<Deprecated title="No longer supported">
+Reading content files and building navigation at runtime.
+</Deprecated>
+
+## Interaction boundary
+
+Runtime is limited to lightweight interactions such as copy buttons or collapsible menus.

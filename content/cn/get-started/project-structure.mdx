@@ -1,0 +1,22 @@
+﻿---
+title: Project structure
+order: 3
+section: Get started
+status: experimental
+version: 0.1.0-alpha
+---
+
+文档系统只关注内容、构建与呈现，目录层级即信息架构。
+
+## 建议目录
+
+- `content/`：MDX 内容唯一来源
+- `app/`：Next.js App Router
+- `components/`：文档 UI 组件
+- `lib/`：解析、导航、TOC 与校验逻辑
+
+<Warning title="避免混乱">
+不要引入 `prototype/` 或临时静态站目录，所有实现应归入正式目录。
+</Warning>
+
+

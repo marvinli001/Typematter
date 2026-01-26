@@ -1,0 +1,31 @@
+﻿---
+title: Navigation rules
+order: 2
+section: Core concepts
+status: experimental
+version: 0.1.0-alpha
+---
+
+The navigation tree is generated from the `content/` folder structure and frontmatter.
+
+## Rules
+
+- Directory hierarchy maps to route hierarchy
+- `order` controls sorting within the same level
+- `section` controls group names
+- `nav.config.ts` is display-only for reordering
+
+<Callout type="note" title="About nav.config">
+Nav config must point to real pages or external links. It cannot create virtual pages.
+</Callout>
+
+## FAQ
+
+<Columns>
+  <Column title="Why not hand-write the sidebar?">
+    Manual sidebars split the source of truth and make validation and tracking harder.
+  </Column>
+  <Column title="Can I hide pages?">
+    Yes. Mark items as hidden in nav config for internal drafts or unpublished pages.
+  </Column>
+</Columns>

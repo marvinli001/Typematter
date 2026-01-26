@@ -1,0 +1,25 @@
+﻿---
+title: Build validation
+order: 2
+section: API
+status: experimental
+version: 0.1.0-alpha
+---
+
+Validation runs in CI/CD to protect doc quality.
+
+## Checklist
+
+- Broken links (internal routes and anchors)
+- Duplicate titles
+- Orphan pages
+- Invalid frontmatter fields
+- Empty directories
+
+## CI integration
+
+Run `validate:docs` before the build. Any error blocks the build.
+
+<Callout type="warning" title="Strict rule">
+Any duplicate route will fail the build.
+</Callout>

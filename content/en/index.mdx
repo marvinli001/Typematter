@@ -1,0 +1,40 @@
+﻿---
+title: Overview
+order: 1
+section: Get started
+status: experimental
+version: 0.1.0-alpha
+---
+
+Typematter is a long-term internal docs shell focused on **static rendering + consistent component semantics**. MDX is the single source of truth, and navigation and routes are generated from the `content/` structure.
+
+## Goals
+
+- Manage all content with Git for auditability and traceability
+- Use high-level visual components to express complex information
+- Improve doc quality with structured validation instead of feature bloat
+
+<Note title="Content is the source of truth">
+All pages come from `content/`. Navigation is display-only and cannot create virtual pages.
+</Note>
+
+## Architecture principles
+
+<Columns>
+  <Column title="Static build">
+    Parse MDX at build time, generate cacheable output, and keep runtime to rendering and lightweight interactions.
+  </Column>
+  <Column title="Component semantics">
+    Callout, Diff, Columns, and other components stay consistent across the entire site.
+  </Column>
+</Columns>
+
+## Quick access
+
+- [Quickstart](./get-started/quickstart)
+- [Components](./core-concepts/components)
+- [Build validation](./api/build-validation)
+
+<Callout type="warning" title="Heads up">
+All links must point to real MDX pages or external URLs. Build validation will block invalid links.
+</Callout>

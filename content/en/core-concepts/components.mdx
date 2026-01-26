@@ -1,0 +1,60 @@
+﻿---
+title: Components
+order: 3
+section: Core concepts
+status: experimental
+version: 0.1.0-alpha
+---
+
+Doc components express semantics such as notes, diffs, structured blocks, and columns.
+
+## Callout
+
+Callouts should reflect intent:
+
+- `Tip/Note`: neutral white block for light hints or clarifications.
+- `Info`: blue block for stable info or consistency notes.
+- `Warning`: orange block for risks or hard constraints.
+- `Deprecated`: red block for deprecations and migration notices.
+
+<Tip title="Tip">
+Use for hints and small reminders.
+</Tip>
+
+<Info title="Info">
+Use for stable rules or consistency notes.
+</Info>
+
+<Warning title="Warning">
+Use for risk or hard constraints.
+</Warning>
+
+<Deprecated title="Deprecated">
+Use to mark deprecated features or migration notices.
+</Deprecated>
+
+## Columns
+
+<Columns>
+  <Column title="Side by side">
+    Good for pairing concepts or steps.
+  </Column>
+  <Column title="Structured comparison">
+    Helps readers quickly understand differences.
+  </Column>
+</Columns>
+
+## Diff Block
+
+Use to compare two approaches side by side. `beforeLabel` and `afterLabel` are optional when you want the top labels.
+
+<DiffBlock beforeLabel="Old behavior" afterLabel="New behavior">
+  <DiffColumn>
+    <code>cache: "manual"</code>
+    <p>Cache strategy maintained by hand.</p>
+  </DiffColumn>
+  <DiffColumn highlight>
+    <code>cache: "filesystem"</code>
+    <p>Automatically synced with the file structure.</p>
+  </DiffColumn>
+</DiffBlock>

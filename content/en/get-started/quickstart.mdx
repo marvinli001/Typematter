@@ -1,0 +1,57 @@
+﻿---
+title: Quickstart
+order: 2
+section: Get started
+status: experimental
+version: 0.1.0-alpha
+pager: true
+---
+
+This page walks you through the content tree, route generation, and component registration.
+
+## 1. Directory structure
+
+```
+content/
+  get-started/
+    quickstart.mdx
+  core-concepts/
+    navigation.mdx
+```
+
+## 2. Add a page
+
+```mdx
+---
+title: Project structure
+order: 3
+section: Get started
+status: experimental
+version: 0.1.0-alpha
+pager: true
+---
+
+# Project structure
+```
+
+<Callout type="note" title="Required fields">
+Every page must include `title`, `order`, and `section`. `status`, `version`, and `tags` are optional fields for status and label bubbles.
+</Callout>
+
+## 3. Diff example
+
+<DiffBlock beforeLabel="v0.8" afterLabel="v0.9">
+  <DiffColumn>
+    <code>navStrategy: "manual"</code>
+    <p>Manually maintain the sidebar.</p>
+  </DiffColumn>
+  <DiffColumn highlight>
+    <code>navStrategy: "filesystem"</code>
+    <p>Navigation is generated from the directory structure.</p>
+  </DiffColumn>
+</DiffBlock>
+
+## Next steps
+
+- [Navigation rules](../core-concepts/navigation)
+- [Components](../core-concepts/components)

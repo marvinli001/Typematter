@@ -1,0 +1,26 @@
+﻿---
+title: Architecture
+order: 1
+section: Core concepts
+status: experimental
+version: 0.1.0-alpha
+---
+
+静态渲染模型保证文档可缓存、可回滚、可审计。
+
+## 解析流程
+
+1. 构建期扫描 `content/`
+2. 解析 frontmatter 与标题结构
+3. 生成导航树与路由映射
+4. 运行质量校验
+
+<Deprecated title="不再支持">
+运行时读取内容文件与动态拼接导航。
+</Deprecated>
+
+## 交互边界
+
+运行时只做轻交互，例如复制代码、折叠菜单。
+
+

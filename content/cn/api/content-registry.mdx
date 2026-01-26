@@ -1,0 +1,25 @@
+﻿---
+title: Content registry
+order: 1
+section: API
+status: experimental
+version: 0.1.0-alpha
+---
+
+构建期扫描并生成一份内容索引，包含路由、标题、顺序与 TOC 信息。
+
+## 输出字段
+
+- `route`
+- `title`
+- `order`
+- `section`
+- `status`（可选）
+- `version`（可选）
+- `tags`（可选）
+
+<Callout type="note" title="缓存策略">
+内容索引在构建阶段生成，可缓存为 JSON 供运行期读取。
+</Callout>
+
+

@@ -1,0 +1,23 @@
+﻿---
+title: Content registry
+order: 1
+section: API
+status: experimental
+version: 0.1.0-alpha
+---
+
+A build-time scan generates a content index that includes routes, titles, ordering, and TOC data.
+
+## Fields
+
+- `route`
+- `title`
+- `order`
+- `section`
+- `status` (optional)
+- `version` (optional)
+- `tags` (optional)
+
+<Callout type="note" title="Caching">
+The content index is generated at build time and can be cached as JSON for runtime use.
+</Callout>
