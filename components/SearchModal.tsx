@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -28,7 +28,7 @@ function buildSnippet(content: string | undefined, query: string) {
   }
   const q = query.trim().toLowerCase();
   if (!q) {
-    return clean.slice(0, 120) + (clean.length > 120 ? "…" : "");
+    return clean.slice(0, 120) + (clean.length > 120 ? "..." : "");
   }
   const tokens = q.split(/\s+/).filter(Boolean);
   const lower = clean.toLowerCase();
@@ -41,18 +41,43 @@ function buildSnippet(content: string | undefined, query: string) {
     }
   }
   if (index === -1) {
-    return clean.slice(0, 120) + (clean.length > 120 ? "…" : "");
+    return clean.slice(0, 120) + (clean.length > 120 ? "..." : "");
   }
   const start = Math.max(0, index - 40);
   const end = Math.min(clean.length, index + 80);
   let snippet = clean.slice(start, end).trim();
   if (start > 0) {
-    snippet = `…${snippet}`;
+    snippet = `...${snippet}`;
   }
   if (end < clean.length) {
-    snippet = `${snippet}…`;
+    snippet = `${snippet}...`;
   }
   return snippet;
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function highlightText(text: string, query: string) {
+  const tokens = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  if (tokens.length === 0) {
+    return text;
+  }
+
+  const pattern = new RegExp(`(${tokens.map(escapeRegExp).join("|")})`, "ig");
+  const parts = text.split(pattern);
+  const tokenSet = new Set(tokens);
+
+  return parts.map((part, index) =>
+    tokenSet.has(part.toLowerCase()) ? (
+      <mark className="search-highlight" key={`${part}-${index}`}>
+        {part}
+      </mark>
+    ) : (
+      part
+    )
+  );
 }
 
 export default function SearchModal({ items }: SearchModalProps) {
@@ -139,15 +164,18 @@ export default function SearchModal({ items }: SearchModalProps) {
     setQuery("");
     setActiveIndex(0);
     document.body.classList.add("search-open");
+    const focusInput = () => {
+      inputRef.current?.focus({ preventScroll: true });
+    };
     requestAnimationFrame(() => {
       setVisible(true);
+      focusInput();
     });
-    window.setTimeout(() => {
-      inputRef.current?.focus();
-    }, 0);
+    const focusTimer = window.setTimeout(focusInput, 50);
 
     return () => {
       document.body.classList.remove("search-open");
+      window.clearTimeout(focusTimer);
     };
   }, [open]);
 
@@ -238,6 +266,7 @@ export default function SearchModal({ items }: SearchModalProps) {
             placeholder="Search documentation..."
             value={query}
             onChange={(event) => setQuery(event.target.value)}
+            autoFocus
           />
           <span className="key-hint">ESC</span>
         </div>
@@ -258,10 +287,12 @@ export default function SearchModal({ items }: SearchModalProps) {
                 }}
               >
                 <span className="search-item-main">
-                  <span className="search-item-title">{item.title}</span>
+                  <span className="search-item-title">
+                    {highlightText(item.title, query)}
+                  </span>
                   {item.content ? (
                     <span className="search-item-snippet">
-                      {buildSnippet(item.content, query)}
+                      {highlightText(buildSnippet(item.content, query), query)}
                     </span>
                   ) : null}
                 </span>
@@ -276,3 +307,6 @@ export default function SearchModal({ items }: SearchModalProps) {
     </div>
   );
 }
+
+
+

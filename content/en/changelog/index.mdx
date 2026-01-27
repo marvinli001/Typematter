@@ -1,15 +1,28 @@
-﻿---
+---
 title: Changelog
 order: 1
 section: Changelog
 status: experimental
-version: 0.1.0-alpha
+version: 0.1.5-alpha
 ---
 
 This page tracks changes to the docs system structure and conventions.
 
+## 0.1.5-alpha
+
+- SearchModal improvements with highlighted terms and clearer snippets (ellipsis, focus handling, autoFocus)
+- Introduced CopyPageButton and Toc components for page copy and scroll-aware TOC
+- Added CodeTabs and FeatureMatrix components for code switching and capability comparison
+- Updated MDX rendering to support new directives (remark-directive, remark-code-tabs)
+- Expanded component docs and examples (components.mdx updates in both English and Chinese)
+
 ## 0.1.0-alpha
 
-- Initial docs shell and navigation system
-- MDX component library and build-time validation
-- Turbopack dev support
+- Initialize Next.js App Router docs shell (MDX rendering, three-column layout, TOC, sidebar)
+- Establish content/ as the single source of truth with cn/en structure and auto nav/route generation
+- Search modal with full-text fuzzy matching and content snippets
+- Theme switcher, route loading skeleton, mobile sidebar interactions
+- Doc components: Callout (Tip/Info/Warning/Deprecated), DiffBlock, Columns, CodeBlock
+- Build-time docs validation and configuration system
+- Lightweight syntax highlighting (rehype-highlight)
+

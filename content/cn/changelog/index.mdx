@@ -1,16 +1,27 @@
-﻿---
+---
 title: Changelog
 order: 1
 section: Changelog
 status: experimental
-version: 0.1.0-alpha
+version: 0.1.5-alpha
 ---
 
 此页面记录文档系统的结构与规范变更。
 
+## 0.1.5-alpha
+
+- SearchModal 支持高亮与更清晰的摘要展示（搜索词高亮、省略号、聚焦与自动聚焦）
+- 新增 CopyPageButton 与 Toc 组件，支持复制页面内容与目录滚动跟随
+- 新增 CodeTabs 与 FeatureMatrix 组件，支持代码切换与能力对比表
+- 更新 MDX 渲染以支持新指令（remark-directive、remark-code-tabs）
+- 扩展组件文档与示例（components.mdx 新增 Code Block、Code Tabs、Feature Matrix，中英文同步）
+
 ## 0.1.0-alpha
 
-- 初始文档壳与导航系统
-- MDX 组件库与构建期校验
-- Turbopack 开发模式支持
-
+- 初始化 Next.js App Router 文档壳（MDX 渲染、三栏布局、目录、侧边栏）
+- 建立 content/ 为唯一真相，按 cn/en 结构组织并自动生成导航与路由
+- 搜索弹窗支持全文模糊匹配与内容摘要
+- 主题切换、路由加载骨架、移动端侧边栏交互
+- 文档组件：Callout（Tip/Info/Warning/Deprecated）、DiffBlock、Columns、CodeBlock
+- 构建期文档校验与配置体系
+- 轻量语法高亮（rehype-highlight）

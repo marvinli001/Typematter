@@ -1,9 +1,9 @@
-﻿---
+---
 title: Components
 order: 3
 section: Core concepts
 status: experimental
-version: 0.1.0-alpha
+version: 0.1.5-alpha
 ---
 
 文档组件用于表达语义：提示、差异、结构化块、列布局等。
@@ -58,3 +58,56 @@ Callout 用于提示类信息，建议按语义选择不同级别：
     <p>自动与文件结构同步。</p>
   </DiffColumn>
 </DiffBlock>
+
+## Code Block
+
+代码块遵循 Markdown 语义写法，渲染时自动应用统一的组件样式与复制按钮。
+
+```ts
+export const navStrategy = "filesystem";
+export const contentPath = "content";
+```
+
+## Code Tabs
+
+用于在同一块内切换多段代码。使用 `code-group` 指令即可，无需写额外 JSX。
+
+::: code-group
+```javascript [Chat Completions] subtitle="Structured Outputs"
+const completion = await openai.chat.completions.create({
+  model: "gpt-5",
+  messages: [{ role: "user", content: "Jane, 54 years old" }],
+});
+```
+
+```javascript [Responses] subtitle="Structured Outputs"
+const response = await openai.responses.create({
+  model: "gpt-5",
+  input: "Jane, 54 years old",
+});
+```
+:::
+
+## Feature Matrix
+
+用于对比多方案能力矩阵，依旧使用 Markdown 表格语义即可。
+
+::: feature-matrix
+
+| Capabilities | Chat Completions API | Responses API |
+| --- | --- | --- |
+| Text generation | yes | yes |
+| Audio | yes | coming soon |
+| Vision | yes | yes |
+| Structured Outputs | yes | yes |
+| Function calling | yes | yes |
+| Web search | yes | yes |
+| File search | no | yes |
+| Computer use | no | yes |
+| Code interpreter | no | yes |
+| MCP | no | yes |
+| Image generation | no | yes |
+| Reasoning summaries | no | yes |
+
+::: 
+

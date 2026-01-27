@@ -1,9 +1,9 @@
-﻿---
+---
 title: Components
 order: 3
 section: Core concepts
 status: experimental
-version: 0.1.0-alpha
+version: 0.1.5-alpha
 ---
 
 Doc components express semantics such as notes, diffs, structured blocks, and columns.
@@ -58,3 +58,54 @@ Use to compare two approaches side by side. `beforeLabel` and `afterLabel` are o
     <p>Automatically synced with the file structure.</p>
   </DiffColumn>
 </DiffBlock>
+
+## Code Block
+
+Use standard Markdown code fences. The renderer adds the shared code styling and copy action.
+
+```ts
+export const navStrategy = "filesystem";
+export const contentPath = "content";
+```
+
+## Code Tabs
+
+Switch between multiple snippets inside one block. Use the `code-group` directive without extra JSX.
+
+::: code-group
+```javascript [Chat Completions] subtitle="Structured Outputs"
+const completion = await openai.chat.completions.create({
+  model: "gpt-5",
+  messages: [{ role: "user", content: "Jane, 54 years old" }],
+});
+```
+
+```javascript [Responses] subtitle="Structured Outputs"
+const response = await openai.responses.create({
+  model: "gpt-5",
+  input: "Jane, 54 years old",
+});
+```
+:::
+
+## Feature Matrix
+
+Compare multiple offerings with a semantic Markdown table.
+
+::: feature-matrix
+| Capabilities | Chat Completions API | Responses API |
+| --- | --- | --- |
+| Text generation | yes | yes |
+| Audio | yes | coming soon |
+| Vision | yes | yes |
+| Structured Outputs | yes | yes |
+| Function calling | yes | yes |
+| Web search | yes | yes |
+| File search | no | yes |
+| Computer use | no | yes |
+| Code interpreter | no | yes |
+| MCP | no | yes |
+| Image generation | no | yes |
+| Reasoning summaries | no | yes |
+:::
+

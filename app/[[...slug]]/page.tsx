@@ -15,14 +15,17 @@ export const dynamic = "force-static";
 
 export async function generateStaticParams() {
   const docs = getAllDocEntries();
-  const params = docs.map((doc) => ({ slug: doc.slugSegments }));
-  const i18nConfig = getI18nConfig();
+  const params = new Map<string, { slug: string[] }>();
 
-  if (i18nConfig.enabled && !params.some((item) => item.slug.length === 0)) {
-    params.push({ slug: [] });
+  docs.forEach((doc) => {
+    params.set(doc.slugSegments.join("/"), { slug: doc.slugSegments });
+  });
+
+  if (!params.has("")) {
+    params.set("", { slug: [] });
   }
 
-  return params;
+  return Array.from(params.values());
 }
 
 export async function generateMetadata({
@@ -127,6 +130,7 @@ export default async function DocPage({
       version={doc.frontmatter.version}
       tags={doc.frontmatter.tags}
       searchItems={searchItems}
+      markdown={doc.content}
       currentRoute={doc.route}
       docPath={doc.relativePath}
       languages={languages}

@@ -5,6 +5,8 @@ import type { TocItem } from "../../lib/docs";
 import siteConfig from "../../site.config";
 import RouteTransition from "../RouteTransition";
 import SearchModal from "../SearchModal";
+import CopyPageButton from "./CopyPageButton";
+import Toc from "./Toc";
 
 const STATUS_LABELS: Record<string, string> = {
   experimental: "Experimental",
@@ -27,6 +29,7 @@ type DocsShellProps = {
     section?: string;
     content?: string;
   }>;
+  markdown?: string;
   currentRoute: string;
   docPath: string;
   languages?: Array<{
@@ -51,6 +54,7 @@ export default function DocsShell({
   version,
   tags,
   searchItems,
+  markdown,
   currentRoute,
   docPath,
   languages,
@@ -257,7 +261,10 @@ export default function DocsShell({
             <RouteTransition />
             <article className="doc">
               <header className="doc-header">
-                <div className="eyebrow">{section}</div>
+                <div className="doc-header-top">
+                  <div className="eyebrow">{section}</div>
+                  {markdown ? <CopyPageButton markdown={markdown} /> : null}
+                </div>
                 <h1>{title}</h1>
                 {metaTags.length > 0 ? (
                   <div className="doc-meta">
@@ -307,25 +314,7 @@ export default function DocsShell({
 
         <aside className="toc">
           <div className="toc-title">On this page</div>
-          {toc.length === 0 ? (
-            <div className="toc-empty">No sections</div>
-          ) : (
-            toc.map((item) => (
-              <a
-                className={`toc-link level-${item.level}`}
-                href={`#${item.id}`}
-                key={item.id}
-              >
-                {item.title}
-              </a>
-            ))
-          )}
-          <div className="toc-divider"></div>
-          {editUrl ? (
-            <a className="button ghost" href={editUrl} target="_blank" rel="noreferrer">
-              Edit on Git
-            </a>
-          ) : null}
+          <Toc items={toc} />
         </aside>
       </div>
     </div>
