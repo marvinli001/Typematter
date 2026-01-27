@@ -18,6 +18,11 @@ type ParagraphNode = {
   children?: Array<{ type: string; value?: string }>;
 };
 
+type TableNode = {
+  type: "table";
+  children?: Array<{ type: string; [key: string]: unknown }>;
+};
+
 type MdxAttribute = {
   type: "mdxJsxAttribute";
   name: string;
@@ -320,7 +325,7 @@ export default function remarkCodeTabs() {
       const tableLines: string[] = openingLines.slice(1);
 
       for (let j = i + 1; j < children.length; j += 1) {
-        const child = children[j] as ParagraphNode;
+        const child = children[j] as ParagraphNode | TableNode | undefined;
         if (
           child?.type === "paragraph" &&
           /^:::\s*$/.test(getParagraphText(child))
