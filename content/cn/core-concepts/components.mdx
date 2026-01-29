@@ -33,6 +33,16 @@ Callout 用于提示类信息，建议按语义选择不同级别：
 用于标记弃用功能或迁移提醒。
 </Deprecated>
 
+## Alerts（GitHub 语法）
+
+使用 GitHub 风格的提示语法，自动映射为 Callout。
+
+> [!NOTE]
+> 会渲染成 Note 提示块，便于迁移和协作时统一语法。
+
+> [!WARNING]
+> 用于风险提示或强约束说明。
+
 ## Columns
 
 <Columns>
@@ -68,6 +78,15 @@ export const navStrategy = "filesystem";
 export const contentPath = "content";
 ```
 
+## Colored Diffs
+
+代码块中以 `+` / `-` 开头的行会自动渲染为增删差异背景。
+
+```diff
+- cache: "manual"
++ cache: "filesystem"
+```
+
 ## Code Tabs
 
 用于在同一块内切换多段代码。使用 `code-group` 指令即可，无需写额外 JSX。
@@ -87,6 +106,62 @@ const response = await openai.responses.create({
 });
 ```
 :::
+
+### 富内容面板
+
+需要混合文字、图片或其它块时，使用 `:::code-group` + `:::tab` 语法。
+
+:::code-group
+:::tab[说明]
+可用于说明、图示或配置对比。
+:::
+
+:::tab[配置]
+```toml
+[docs]
+static = true
+```
+:::
+
+
+
+## Steps
+
+将有序列表渲染成“步骤块”，适合安装/迁移/排障流程。
+
+::: steps
+1. 安装 `typematter` 依赖。
+2. 调整 `content/` 目录结构。
+3. 构建前先执行 `npm run validate:docs`。
+:::
+
+## File Tree
+
+将列表渲染为带文件/目录图标的可折叠树形结构。
+
+::: file-tree
+- app/
+  - layout.tsx
+  - page.tsx
+- content/
+  - core-concepts/
+    - components.mdx
+- package.json - 项目元信息
+:::
+
+## Details / Accordion
+
+折叠块用于放置补充说明或可选项，避免打断阅读主线。
+
+::: details 为什么重要
+保持长说明的可读性，同时不干扰主流程。
+:::
+
+## Annotations
+
+在正文中插入注释标记，悬停/聚焦后显示解释内容。
+
+这个 API 仍在实验中 :annotation[查看迁移指南以了解限制。]{label="i" title="注意"}。
 
 ## Feature Matrix
 

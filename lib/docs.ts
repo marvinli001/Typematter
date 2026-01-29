@@ -4,6 +4,7 @@ import matter from "gray-matter";
 import { remark } from "remark";
 import remarkGfm from "remark-gfm";
 import remarkMdx from "remark-mdx";
+import remarkDirective from "remark-directive";
 import { visit } from "unist-util-visit";
 import { toString } from "mdast-util-to-string";
 import GithubSlugger from "github-slugger";
@@ -142,7 +143,11 @@ function walkDir(dir: string, files: string[] = []) {
 function extractHeadings(source: string): TocItem[] {
   const slugger = new GithubSlugger();
   const toc: TocItem[] = [];
-  const tree = remark().use(remarkMdx).use(remarkGfm).parse(source);
+  const tree = remark()
+    .use(remarkMdx)
+    .use(remarkGfm)
+    .use(remarkDirective)
+    .parse(source);
 
   visit(tree, "heading", (node: { depth: number }) => {
     const depth = node.depth;
@@ -166,7 +171,11 @@ function extractHeadings(source: string): TocItem[] {
 }
 
 function extractPlainText(source: string) {
-  const tree = remark().use(remarkMdx).use(remarkGfm).parse(source);
+  const tree = remark()
+    .use(remarkMdx)
+    .use(remarkGfm)
+    .use(remarkDirective)
+    .parse(source);
   return toString(tree).replace(/\s+/g, " ").trim();
 }
 

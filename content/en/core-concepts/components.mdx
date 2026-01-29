@@ -33,6 +33,16 @@ Use for risk or hard constraints.
 Use to mark deprecated features or migration notices.
 </Deprecated>
 
+## Alerts (GitHub syntax)
+
+Use GitHub-style alerts in Markdown and they will map to callouts automatically.
+
+> [!NOTE]
+> This maps to the Note callout and keeps migration syntax consistent.
+
+> [!WARNING]
+> Use for risks or hard constraints.
+
 ## Columns
 
 <Columns>
@@ -68,6 +78,15 @@ export const navStrategy = "filesystem";
 export const contentPath = "content";
 ```
 
+## Colored Diffs
+
+Lines starting with `+` or `-` in code blocks are rendered with diff backgrounds for upgrade guides.
+
+```diff
+- cache: "manual"
++ cache: "filesystem"
+```
+
 ## Code Tabs
 
 Switch between multiple snippets inside one block. Use the `code-group` directive without extra JSX.
@@ -87,6 +106,61 @@ const response = await openai.responses.create({
 });
 ```
 :::
+
+### Rich panels
+
+For mixed content (text, images, blocks), use `:::code-group` with `:::tab` panels.
+
+:::code-group
+:::tab[Overview]
+Use tabs for notes, prose, or images alongside code.
+:::
+
+:::tab[Config]
+```toml
+[docs]
+static = true
+```
+:::
+:::
+
+## Steps
+
+Turn ordered lists into step-by-step flows for long procedures.
+
+::: steps
+1. Install the `typematter` dependencies.
+2. Update the `content/` directory structure.
+3. Run `npm run validate:docs` before building.
+:::
+
+## File Tree
+
+Render Markdown lists as a file tree with collapsible folders.
+
+::: file-tree
+- app/
+  - layout.tsx
+  - page.tsx
+- content/
+  - core-concepts/
+    - components.mdx
+- package.json - Project metadata
+:::
+
+## Details / Accordion
+
+Use collapsible blocks for supporting or optional content.
+
+::: details Why this matters
+This keeps long explanations out of the main reading flow.
+:::
+
+## Annotations
+
+Inline annotations add contextual tooltips that still support Markdown.
+
+This API is experimental :annotation[See the migration guide for constraints.]{label="i" title="Heads up"}.
 
 ## Feature Matrix
 

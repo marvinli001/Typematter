@@ -10,6 +10,8 @@ type CodeNode = {
 type DirectiveNode = {
   type: "containerDirective";
   name?: string;
+  attributes?: Record<string, string>;
+  data?: { [key: string]: unknown };
   children?: Array<CodeNode | { type: string; [key: string]: unknown }>;
 };
 
@@ -38,6 +40,7 @@ type MdxFlowElement = {
 
 const CODE_GROUP_NAME = "code-group";
 const MATRIX_NAMES = new Set(["feature-matrix", "capability-matrix"]);
+const TAB_NAMES = new Set(["tab", "code-tab", "code-group-tab"]);
 
 function getParagraphText(node: ParagraphNode) {
   if (!node.children || node.children.length === 0) {
@@ -152,6 +155,21 @@ function parseMeta(meta?: string | null) {
 
 export default function remarkCodeTabs() {
   return (tree: any) => {
+    const getDirectiveLabel = (children: Array<any>) => {
+      const labelIndex = children.findIndex(
+        (child) => child?.type === "paragraph" && child?.data?.directiveLabel
+      );
+      if (labelIndex === -1) {
+        return { label: undefined as string | undefined, children };
+      }
+
+      const labelNode = children[labelIndex] as ParagraphNode;
+      const label = getParagraphText(labelNode);
+      const nextChildren = children.slice();
+      nextChildren.splice(labelIndex, 1);
+      return { label, children: nextChildren };
+    };
+
     const transformCodeNodes = (codeNodes: CodeNode[]) => {
       return codeNodes.map((codeNode, tabIndex) => {
         const { label, subtitle } = parseMeta(codeNode.meta);
@@ -195,6 +213,41 @@ export default function remarkCodeTabs() {
       return groupNode;
     };
 
+    const transformTabDirectives = (tabNodes: DirectiveNode[]) => {
+      return tabNodes.map((tabNode, tabIndex) => {
+        const rawAttributes = tabNode.attributes ?? {};
+        const { label: directiveLabel, children: prunedChildren } =
+          getDirectiveLabel(tabNode.children ?? []);
+        const label =
+          rawAttributes.label ||
+          rawAttributes.tab ||
+          rawAttributes.title ||
+          directiveLabel ||
+          `Tab ${tabIndex + 1}`;
+        const subtitle = rawAttributes.subtitle;
+        const attributes: MdxAttribute[] = [
+          { type: "mdxJsxAttribute", name: "label", value: label },
+        ];
+
+        if (subtitle) {
+          attributes.push({
+            type: "mdxJsxAttribute",
+            name: "subtitle",
+            value: subtitle,
+          });
+        }
+
+        const tabNodeElement: MdxFlowElement = {
+          type: "mdxJsxFlowElement",
+          name: "CodeTab",
+          attributes,
+          children: prunedChildren as any,
+        };
+
+        return tabNodeElement;
+      });
+    };
+
     visit(tree, "containerDirective", (node: DirectiveNode, index, parent) => {
       if (!parent || typeof index !== "number") {
         return;
@@ -205,10 +258,21 @@ export default function remarkCodeTabs() {
       }
 
       if (node.name === CODE_GROUP_NAME) {
-        const codeNodes = (node.children ?? []).filter(
+        const directiveChildren = node.children ?? [];
+        const tabDirectives = directiveChildren.filter(
+          (child) =>
+            child?.type === "containerDirective" &&
+            TAB_NAMES.has(child.name ?? "")
+        ) as DirectiveNode[];
+        const codeNodes = directiveChildren.filter(
           (child) => child.type === "code"
         ) as CodeNode[];
-        const codeTabs = transformCodeNodes(codeNodes);
+
+        const codeTabs =
+          tabDirectives.length > 0
+            ? transformTabDirectives(tabDirectives)
+            : transformCodeNodes(codeNodes);
+
         const groupNode = wrapCodeTabs(codeTabs);
 
         if (!groupNode) {

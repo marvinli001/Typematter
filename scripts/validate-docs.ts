@@ -11,6 +11,7 @@ import { getI18nConfig } from "../lib/i18n";
 import { remark } from "remark";
 import remarkGfm from "remark-gfm";
 import remarkMdx from "remark-mdx";
+import remarkDirective from "remark-directive";
 import { visit } from "unist-util-visit";
 
 const REQUIRED_FIELDS = ["title", "order", "section"];
@@ -273,7 +274,11 @@ function validateLinks() {
   const docMap = new Map(docs.map((doc) => [doc.route, doc]));
 
   docs.forEach((doc) => {
-    const tree = remark().use(remarkMdx).use(remarkGfm).parse(doc.content);
+    const tree = remark()
+      .use(remarkMdx)
+      .use(remarkGfm)
+      .use(remarkDirective)
+      .parse(doc.content);
 
     visit(tree, "link", (node: { url: string }) => {
       const url = node.url;
