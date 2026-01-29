@@ -155,7 +155,7 @@ export default function DocsShell({
                 </div>
               </details>
             ) : null}
-            <details className="dropdown" data-theme-menu>
+            <details className="dropdown align-right" data-theme-menu>
               <summary className="dropdown-trigger">
                 <svg viewBox="0 0 24 24" aria-hidden="true" className="icon">
                   <path d="M12 4a1 1 0 011 1v2a1 1 0 11-2 0V5a1 1 0 011-1z" />
@@ -195,6 +195,19 @@ export default function DocsShell({
 
       <div className="layout">
         <aside className="sidebar">
+          <div className="sidebar-header">
+            <span className="sidebar-title">Navigation</span>
+            <button
+              className="icon-button sidebar-close"
+              type="button"
+              aria-label="Close navigation"
+              data-menu-close
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true" className="icon">
+                <path d="M6 6l12 12M18 6l-12 12" />
+              </svg>
+            </button>
+          </div>
           <div className="sidebar-search">
             <label className="search compact">
               <svg viewBox="0 0 24 24" aria-hidden="true" className="icon">

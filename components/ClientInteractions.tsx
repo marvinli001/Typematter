@@ -6,8 +6,6 @@ export default function ClientInteractions() {
   useEffect(() => {
     const body = document.body;
     const root = document.documentElement;
-    const menuToggle = document.querySelector("[data-menu-toggle]");
-    const overlay = document.querySelector("[data-overlay]");
     const themeLabel = document.querySelector<HTMLElement>("[data-theme-label]");
     const themeMenu = document.querySelector<HTMLDetailsElement>(
       "[data-theme-menu]"
@@ -31,16 +29,36 @@ export default function ClientInteractions() {
       }
     };
 
-    const handleToggle = () => {
-      body.classList.toggle("sidebar-open");
-    };
-
     const handleClose = () => {
       body.classList.remove("sidebar-open");
     };
 
-    menuToggle?.addEventListener("click", handleToggle);
-    overlay?.addEventListener("click", handleClose);
+    const handleMenuClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (!target) {
+        return;
+      }
+
+      if (target.closest("[data-menu-toggle]")) {
+        event.preventDefault();
+        body.classList.toggle("sidebar-open");
+        return;
+      }
+
+      if (target.closest("[data-menu-close]") || target.closest("[data-overlay]")) {
+        event.preventDefault();
+        handleClose();
+      }
+    };
+
+    const handleNavClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      const navItem = target?.closest("[data-nav-item]");
+      if (!navItem) {
+        return;
+      }
+      handleClose();
+    };
 
     const handleThemeSelect = (event: Event) => {
       const target = (event.target as HTMLElement | null)?.closest<HTMLElement>(
@@ -64,6 +82,8 @@ export default function ClientInteractions() {
     };
 
     document.addEventListener("pointerdown", handleThemeSelect);
+    document.addEventListener("click", handleNavClick, true);
+    document.addEventListener("click", handleMenuClick);
 
     let mediaQuery: MediaQueryList | null = null;
     const handleSystemTheme = () => {
@@ -89,9 +109,9 @@ export default function ClientInteractions() {
     }
 
     return () => {
-      menuToggle?.removeEventListener("click", handleToggle);
-      overlay?.removeEventListener("click", handleClose);
       document.removeEventListener("pointerdown", handleThemeSelect);
+      document.removeEventListener("click", handleNavClick, true);
+      document.removeEventListener("click", handleMenuClick);
       if (mediaQuery) {
         mediaQuery.removeEventListener("change", handleSystemTheme);
       }
