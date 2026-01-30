@@ -1,6 +1,6 @@
 # Typematter
 
-Version: 0.1.5-alpha
+Version: 0.2.0-beta
 
 Typematter is a static-first documentation shell built around MDX. The system emphasizes component-driven reading, consistent semantics, and long-term maintainability with Git-based content.
 
