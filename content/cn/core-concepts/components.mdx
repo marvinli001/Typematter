@@ -6,14 +6,14 @@ status: experimental
 version: 0.1.5-alpha
 ---
 
-文档组件用于表达语义：提示、差异、结构化块、列布局等。
+文档组件用于表达语义，例如提示、对比、结构块与列布局。多数组件既可用 MDX 标签，也支持 Markdown 指令。
 
 ## Callout
 
 Callout 用于提示类信息，建议按语义选择不同级别：
 
 - `Tip/Note`：白色提示块，适合轻量提醒或补充说明。
-- `Info`：蓝色提示块，适合稳定信息或一致性声明。
+- `Info`：蓝色提示块，适合稳定信息或一致性说明。
 - `Warning`：橙色提示块，适合风险提示或强约束。
 - `Deprecated`：红色提示块，适合弃用说明与迁移提醒。
 
@@ -35,7 +35,7 @@ Callout 用于提示类信息，建议按语义选择不同级别：
 
 ## Alerts（GitHub 语法）
 
-使用 GitHub 风格的提示语法，自动映射为 Callout。
+使用 GitHub 风格的提示语法，会自动映射为 Callout。
 
 > [!NOTE]
 > 会渲染成 Note 提示块，便于迁移和协作时统一语法。
@@ -46,22 +46,97 @@ Callout 用于提示类信息，建议按语义选择不同级别：
 ## Columns
 
 <Columns>
-  <Column title="单列信息">
-    适用于并排展示概念或步骤。
+  <Column title="并列信息">
+    适合并排展示概念或步骤。
   </Column>
   <Column title="结构化对比">
-    让读者快速理解差异点。
+    帮助读者快速理解差异点。
   </Column>
 </Columns>
 
+## Cards
+
+卡片用于展示入口或推荐阅读，默认一行最多 4 个，移动端最多 2 个。
+
+<Cards>
+  <Card
+    title="快速开始"
+    href="/cn/get-started/quickstart"
+    description="安装依赖并初始化文档结构。"
+    icon="spark"
+  />
+  <Card
+    title="组件库"
+    href="/cn/core-concepts/components"
+    description="内置的 MDX 组件语义。"
+    icon="grid"
+  />
+  <Card
+    title="项目结构"
+    href="/cn/get-started/project-structure"
+    description="了解内容与导航的组织方式。"
+    icon="folder"
+  />
+  <Card
+    title="构建校验"
+    href="/cn/api/build-validation"
+    description="CI 检查文档质量与链接。"
+    icon="check"
+  />
+</Cards>
+
+### 卡片（指令语法）
+
+::: cards
+- [快速开始](/cn/get-started/quickstart) - 安装依赖并初始化文档结构。
+- [组件库](/cn/core-concepts/components) - 内置的 MDX 组件语义。
+- [项目结构](/cn/get-started/project-structure) - 了解内容与导航的组织方式。
+- [构建校验](/cn/api/build-validation) - CI 检查文档质量与链接。
+:::
+
+## Link Buttons
+
+<LinkButton href="/cn/get-started/quickstart" variant="primary">
+  开始快速开始
+</LinkButton>
+<LinkButton
+  href="/cn/core-concepts/components"
+  variant="secondary"
+  icon="arrow-right"
+  iconPlacement="end"
+>
+  浏览组件
+</LinkButton>
+<LinkButton href="/cn/changelog" variant="minimal" icon="arrow-right" iconPlacement="end">
+  查看更新日志
+</LinkButton>
+
+## Badges
+
+<Badge text="Beta" variant="note" />
+<Badge text="Stable" variant="success" />
+<Badge text="Caution" variant="caution" size="small" />
+
+行内语法：:badge[实验中]{variant="tip"}。
+
+## Math Equations
+
+行内公式用 `$...$`，块级公式用 `$$...$$`，渲染由 KaTeX 提供。
+
+行内示例：$E = mc^2$。
+
+$$
+\int_0^1 x^2 \, dx = \frac{1}{3}
+$$
+
 ## Diff Block
 
-用于并排对比两个方案/版本。`beforeLabel` 与 `afterLabel` 可选，必要时再显示顶部标签。
+用于并排对比两个方案/版本，`beforeLabel` 与 `afterLabel` 可选，必要时再显示顶部标签。
 
 <DiffBlock beforeLabel="旧行为" afterLabel="新行为">
   <DiffColumn>
     <code>cache: "manual"</code>
-    <p>需要手工维护缓存策略。</p>
+    <p>需要手动维护缓存策略。</p>
   </DiffColumn>
   <DiffColumn highlight>
     <code>cache: "filesystem"</code>
@@ -71,7 +146,7 @@ Callout 用于提示类信息，建议按语义选择不同级别：
 
 ## Code Block
 
-代码块遵循 Markdown 语义写法，渲染时自动应用统一的组件样式与复制按钮。
+使用标准 Markdown 代码块语法，渲染时自动应用统一样式与复制按钮。
 
 ```ts
 export const navStrategy = "filesystem";
@@ -122,12 +197,11 @@ const response = await openai.responses.create({
 static = true
 ```
 :::
-
-
+:::
 
 ## Steps
 
-将有序列表渲染成“步骤块”，适合安装/迁移/排障流程。
+将有序列表渲染为步骤块，适合安装/迁移/排查流程。
 
 ::: steps
 1. 安装 `typematter` 依赖。
@@ -159,16 +233,15 @@ static = true
 
 ## Annotations
 
-在正文中插入注释标记，悬停/聚焦后显示解释内容。
+在正文中插入注释标记，悬停或聚焦后显示解释内容。
 
-这个 API 仍在实验中 :annotation[查看迁移指南以了解限制。]{label="i" title="注意"}。
+这个 API 仍在实验中：:annotation[查看迁移指南以了解限制。]{label="i" title="注意"}。
 
 ## Feature Matrix
 
-用于对比多方案能力矩阵，依旧使用 Markdown 表格语义即可。
+用于对比多方案能力矩阵，仍使用 Markdown 表格语义即可。
 
 ::: feature-matrix
-
 | Capabilities | Chat Completions API | Responses API |
 | --- | --- | --- |
 | Text generation | yes | yes |
@@ -183,5 +256,4 @@ static = true
 | MCP | no | yes |
 | Image generation | no | yes |
 | Reasoning summaries | no | yes |
-
 :::

@@ -154,3 +154,5 @@ export function FeatureMatrix({ children }: FeatureMatrixProps) {
   const content = Children.map(children, transformNode);
   return <div className="feature-matrix">{content}</div>;
 }
+
+

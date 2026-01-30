@@ -8,6 +8,9 @@ import { Steps, Step } from "./Steps";
 import { Details } from "./Details";
 import { FileTree, FileTreeItem } from "./FileTree";
 import { Annotation } from "./Annotation";
+import { Cards, Card } from "./Cards";
+import { LinkButton } from "./LinkButton";
+import { Badge } from "./Badge";
 
 export const mdxComponents = {
   Callout,
@@ -29,5 +32,9 @@ export const mdxComponents = {
   FileTree,
   FileTreeItem,
   Annotation,
+  Cards,
+  Card,
+  LinkButton,
+  Badge,
   pre: CodeBlock,
 };

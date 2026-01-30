@@ -36,6 +36,12 @@ type ListItemNode = {
   children?: Array<any>;
 };
 
+type LinkNode = {
+  type: "link";
+  url?: string;
+  children?: Array<any>;
+};
+
 type MdxAttribute = {
   type: "mdxJsxAttribute";
   name: string;
@@ -72,6 +78,8 @@ const ALERT_MAP: Record<
 const DETAILS_NAMES = new Set(["details", "accordion"]);
 const STEPS_NAMES = new Set(["steps"]);
 const FILE_TREE_NAMES = new Set(["file-tree", "filetree"]);
+const CARDS_NAMES = new Set(["cards", "card-grid", "card-group"]);
+const BADGE_NAMES = new Set(["badge"]);
 
 function getParagraphText(node: ParagraphNode) {
   if (!node.children || node.children.length === 0) {
@@ -96,6 +104,32 @@ function getParagraphLines(node: ParagraphNode) {
     .filter((line) => line.length > 0);
 }
 
+function extractTextFromNodes(nodes?: Array<any>): string {
+  if (!nodes || nodes.length === 0) {
+    return "";
+  }
+  return nodes
+    .map((node) => {
+      if (!node) {
+        return "";
+      }
+      if (typeof node.value === "string") {
+        return node.value;
+      }
+      if (typeof node === "string") {
+        return node;
+      }
+      if (Array.isArray(node)) {
+        return extractTextFromNodes(node);
+      }
+      if (typeof node === "object" && Array.isArray(node.children)) {
+        return extractTextFromNodes(node.children);
+      }
+      return "";
+    })
+    .join("");
+}
+
 function buildAttribute(name: string, value?: string) {
   if (!value) {
     return null;
@@ -116,6 +150,38 @@ function getDirectiveLabel(children: Array<any>) {
   const nextChildren = children.slice();
   nextChildren.splice(labelIndex, 1);
   return { label, children: nextChildren };
+}
+
+function splitTitleAndDescription(raw: string) {
+  const trimmed = raw.trim();
+  if (!trimmed) {
+    return { title: "", description: undefined as string | undefined };
+  }
+  const match = trimmed.match(/\s(?:-|–|—|:)\s/);
+  if (!match || match.index === undefined) {
+    return { title: trimmed, description: undefined as string | undefined };
+  }
+  const index = match.index;
+  const title = trimmed.slice(0, index).trim();
+  const description = trimmed.slice(index + match[0].length).trim();
+  return {
+    title: title || trimmed,
+    description: description || undefined,
+  };
+}
+
+function getFirstLink(node: ParagraphNode) {
+  const link = (node.children ?? []).find(
+    (child) => child?.type === "link"
+  ) as LinkNode | undefined;
+  if (!link) {
+    return null;
+  }
+  const text = extractTextFromNodes(link.children);
+  return {
+    url: link.url,
+    text,
+  };
 }
 
 function buildStepsFromList(listNode: ListNode) {
@@ -195,7 +261,10 @@ function parseFileTreeLabel(rawLabel: string) {
   return { name, description };
 }
 
-function buildFileTreeItems(listNode: ListNode, openAll: boolean) {
+function buildFileTreeItems(
+  listNode: ListNode,
+  openAll: boolean
+): MdxFlowElement[] {
   const items = (listNode.children ?? []) as ListItemNode[];
   return items.map((item) => {
     const itemChildren = item.children ?? [];
@@ -253,6 +322,125 @@ function buildFileTree(listNode: ListNode, openAll: boolean) {
     name: "FileTree",
     children: buildFileTreeItems(listNode, openAll),
   } satisfies MdxFlowElement;
+}
+
+function buildCardsFromList(listNode: ListNode) {
+  const items = (listNode.children ?? []) as ListItemNode[];
+  const cards = items
+    .map((item) => {
+      const itemChildren = item.children ?? [];
+      const labelNode = itemChildren.find(
+        (child) => child?.type === "paragraph"
+      ) as ParagraphNode | undefined;
+      if (!labelNode) {
+        return null;
+      }
+      const rawLabel = extractTextFromNodes(labelNode.children);
+      const { title: rawTitle, description } = splitTitleAndDescription(rawLabel);
+      const link = getFirstLink(labelNode);
+      const title = (link?.text || rawTitle || "Card").trim();
+      const attributes: MdxAttribute[] = [
+        { type: "mdxJsxAttribute", name: "title", value: title },
+      ];
+
+      if (link?.url) {
+        attributes.push({
+          type: "mdxJsxAttribute",
+          name: "href",
+          value: link.url,
+        });
+      }
+
+      const extraChildren = itemChildren.filter((child) => child !== labelNode);
+      if (extraChildren.length === 0 && description) {
+        attributes.push({
+          type: "mdxJsxAttribute",
+          name: "description",
+          value: description,
+        });
+      }
+
+      return {
+        type: "mdxJsxFlowElement",
+        name: "Card",
+        attributes,
+        children: extraChildren.length > 0 ? extraChildren : [],
+      } satisfies MdxFlowElement;
+    })
+    .filter(Boolean) as MdxFlowElement[];
+
+  return cards;
+}
+
+function buildCardsFromLines(lines: string[]) {
+  const cards: MdxFlowElement[] = [];
+  lines.forEach((line) => {
+    const trimmed = line.trim();
+    if (!trimmed || !/^[-*+]\s+/.test(trimmed)) {
+      return;
+    }
+    const content = trimmed.replace(/^[-*+]\s+/, "").trim();
+    if (!content) {
+      return;
+    }
+
+    const linkMatch = content.match(/\[([^\]]+)\]\(([^)]+)\)/);
+    const linkText = linkMatch?.[1]?.trim();
+    const linkUrl = linkMatch?.[2]?.trim();
+    const withoutLink = linkMatch
+      ? content.replace(linkMatch[0], "").trim()
+      : content;
+    const cleaned = withoutLink.replace(/^[-–—:]\s*/, "").trim();
+    const { title: rawTitle, description } = splitTitleAndDescription(
+      linkText ? linkText : cleaned
+    );
+    const title = (linkText || rawTitle || "Card").trim();
+    const finalDescription =
+      linkText && cleaned.length > 0 ? cleaned : description;
+
+    const attributes: MdxAttribute[] = [
+      { type: "mdxJsxAttribute", name: "title", value: title },
+    ];
+
+    if (linkUrl) {
+      attributes.push({
+        type: "mdxJsxAttribute",
+        name: "href",
+        value: linkUrl,
+      });
+    }
+
+    if (finalDescription) {
+      attributes.push({
+        type: "mdxJsxAttribute",
+        name: "description",
+        value: finalDescription,
+      });
+    }
+
+    cards.push({
+      type: "mdxJsxFlowElement",
+      name: "Card",
+      attributes,
+      children: [],
+    } satisfies MdxFlowElement);
+  });
+
+  return cards;
+}
+
+function buildCardsFromNodes(nodes: Array<any>) {
+  const listNode = nodes.find(
+    (child) => child?.type === "list"
+  ) as ListNode | undefined;
+  if (listNode) {
+    return buildCardsFromList(listNode);
+  }
+
+  const lines = nodes.flatMap((child) =>
+    child?.type === "paragraph" ? getParagraphLines(child) : []
+  );
+  return buildCardsFromLines(lines);
 }
 
 function extractAlert(blockquote: BlockquoteNode) {
@@ -368,6 +556,35 @@ function transformFileTree(node: DirectiveNode) {
   return buildFileTree(listNode, openAll);
 }
 
+function transformCards(node: DirectiveNode) {
+  const cards = buildCardsFromNodes(node.children ?? []);
+  if (cards.length === 0) {
+    return null;
+  }
+
+  const rawAttributes = node.attributes ?? {};
+  const attributes: MdxAttribute[] = [];
+  const columns = rawAttributes.columns || rawAttributes.cols;
+  const mobileColumns =
+    rawAttributes.mobileColumns || rawAttributes.mobile || rawAttributes.mobileCols;
+
+  const columnsAttr = buildAttribute("columns", columns);
+  if (columnsAttr) {
+    attributes.push(columnsAttr);
+  }
+  const mobileAttr = buildAttribute("mobileColumns", mobileColumns);
+  if (mobileAttr) {
+    attributes.push(mobileAttr);
+  }
+
+  return {
+    type: "mdxJsxFlowElement",
+    name: "Cards",
+    attributes,
+    children: cards,
+  } satisfies MdxFlowElement;
+}
+
 function transformAnnotation(node: DirectiveNode | TextDirectiveNode, inline = false) {
   const rawAttributes = node.attributes ?? {};
   const attributes: MdxAttribute[] = [];
@@ -403,6 +620,31 @@ function transformAnnotation(node: DirectiveNode | TextDirectiveNode, inline = f
   }
 
   return element;
+}
+
+function transformBadge(node: TextDirectiveNode) {
+  const rawAttributes = node.attributes ?? {};
+  const attributes: MdxAttribute[] = [];
+  const variantAttr = buildAttribute("variant", rawAttributes.variant ?? rawAttributes.type);
+  const sizeAttr = buildAttribute("size", rawAttributes.size);
+  const textAttr = buildAttribute("text", rawAttributes.text);
+
+  if (variantAttr) {
+    attributes.push(variantAttr);
+  }
+  if (sizeAttr) {
+    attributes.push(sizeAttr);
+  }
+  if (textAttr) {
+    attributes.push(textAttr);
+  }
+
+  return {
+    type: "mdxJsxTextElement",
+    name: "Badge",
+    attributes,
+    children: node.children ?? [],
+  } satisfies MdxTextElement;
 }
 
 export default function remarkDocsComponents() {
@@ -444,6 +686,14 @@ export default function remarkDocsComponents() {
         return;
       }
 
+      if (CARDS_NAMES.has(node.name ?? "")) {
+        const cardsNode = transformCards(node);
+        if (cardsNode) {
+          parent.children[index] = cardsNode;
+        }
+        return;
+      }
+
       if (node.name === "annotation") {
         parent.children[index] = transformAnnotation(node);
       }
@@ -454,6 +704,9 @@ export default function remarkDocsComponents() {
         return;
       }
       if (node.name !== "annotation") {
+        if (BADGE_NAMES.has(node.name ?? "")) {
+          parent.children[index] = transformBadge(node);
+        }
         return;
       }
       parent.children[index] = transformAnnotation(node, true);
@@ -476,7 +729,7 @@ export default function remarkDocsComponents() {
       }
 
       const match = openingLines[0].match(
-        /^:::\s*(details|steps|file-tree|filetree)\s*(.*)$/
+        /^:::\s*(details|steps|file-tree|filetree|cards|card-grid|card-group)\s*(.*)$/
       );
       if (!match) {
         continue;
@@ -510,18 +763,12 @@ export default function remarkDocsComponents() {
         continue;
       }
 
-      for (let j = i + 1; j < children.length; j += 1) {
-        const child = children[j] as ParagraphNode;
-        if (
-          child?.type === "paragraph" &&
-          /^:::\s*$/.test(getParagraphText(child))
-        ) {
-          endIndex = j;
-          break;
-        }
-      }
+      const isListBased =
+        STEPS_NAMES.has(name) ||
+        FILE_TREE_NAMES.has(name) ||
+        CARDS_NAMES.has(name);
 
-      if (endIndex === -1 && (STEPS_NAMES.has(name) || FILE_TREE_NAMES.has(name))) {
+      if (isListBased) {
         const listIndex = children.slice(i + 1).findIndex((child) => {
           if (child?.type !== "list") {
             return false;
@@ -539,6 +786,19 @@ export default function remarkDocsComponents() {
           if (removed) {
             endIndex = absoluteIndex;
             closingInList = true;
+          }
+        }
+      }
+
+      if (endIndex === -1) {
+        for (let j = i + 1; j < children.length; j += 1) {
+          const child = children[j] as ParagraphNode;
+          if (
+            child?.type === "paragraph" &&
+            /^:::\s*$/.test(getParagraphText(child))
+          ) {
+            endIndex = j;
+            break;
           }
         }
       }
@@ -589,6 +849,19 @@ export default function remarkDocsComponents() {
         }
         const treeNode = buildFileTree(listNode, false);
         children.splice(i, endIndex - i + 1, treeNode);
+        continue;
+      }
+
+      if (CARDS_NAMES.has(name)) {
+        const cardsNode = transformCards({
+          type: "containerDirective",
+          name: "cards",
+          children: bodyNodes,
+        });
+        if (!cardsNode) {
+          continue;
+        }
+        children.splice(i, endIndex - i + 1, cardsNode);
       }
     }
   };

@@ -65,6 +65,39 @@ function getParagraphLines(node: ParagraphNode) {
     .filter((line) => line.length > 0);
 }
 
+function extractTextFromNodes(node: any): string {
+  if (!node) {
+    return "";
+  }
+  if (typeof node.value === "string") {
+    return node.value;
+  }
+  if (Array.isArray(node)) {
+    return node.map(extractTextFromNodes).join("");
+  }
+  if (typeof node === "object" && Array.isArray(node.children)) {
+    return node.children.map(extractTextFromNodes).join("");
+  }
+  return "";
+}
+
+function stripClosingMarkerFromTable(tableNode: TableNode) {
+  const rows = tableNode.children ?? [];
+  if (rows.length === 0) {
+    return false;
+  }
+
+  const lastRow = rows[rows.length - 1] as { children?: Array<any> } | undefined;
+  const cells = lastRow?.children ?? [];
+  const rowText = extractTextFromNodes(cells).trim();
+  if (!/^:::\s*$/.test(rowText)) {
+    return false;
+  }
+
+  rows.pop();
+  return true;
+}
+
 function splitRow(line: string) {
   let working = line.trim();
   if (working.startsWith("|")) {
@@ -259,11 +292,14 @@ export default function remarkCodeTabs() {
 
       if (node.name === CODE_GROUP_NAME) {
         const directiveChildren = node.children ?? [];
-        const tabDirectives = directiveChildren.filter(
-          (child) =>
-            child?.type === "containerDirective" &&
-            TAB_NAMES.has(child.name ?? "")
-        ) as DirectiveNode[];
+        const tabDirectives = directiveChildren.filter((child) => {
+          if (child?.type !== "containerDirective") {
+            return false;
+          }
+          const name =
+            typeof child.name === "string" ? child.name : "";
+          return TAB_NAMES.has(name);
+        }) as DirectiveNode[];
         const codeNodes = directiveChildren.filter(
           (child) => child.type === "code"
         ) as CodeNode[];
@@ -283,9 +319,23 @@ export default function remarkCodeTabs() {
         return;
       }
 
-      const tableNode = (node.children ?? []).find(
+      let tableNode = (node.children ?? []).find(
         (child) => child.type === "table"
-      );
+      ) as TableNode | undefined;
+
+      if (!tableNode) {
+        const tableLines = (node.children ?? []).flatMap((child) =>
+          child?.type === "paragraph"
+            ? getParagraphLines(child as ParagraphNode)
+            : []
+        );
+        if (tableLines.length > 0) {
+          const builtTable = buildTableNode(tableLines);
+          if (builtTable) {
+            tableNode = builtTable as TableNode;
+          }
+        }
+      }
 
       if (!tableNode) {
         return;
@@ -387,6 +437,7 @@ export default function remarkCodeTabs() {
       let endIndex = -1;
       let valid = true;
       const tableLines: string[] = openingLines.slice(1);
+      let tableIndex = -1;
 
       for (let j = i + 1; j < children.length; j += 1) {
         const child = children[j] as ParagraphNode | TableNode | undefined;
@@ -400,6 +451,11 @@ export default function remarkCodeTabs() {
 
         if (child?.type === "table") {
           tableNode = child;
+          tableIndex = j;
+          if (stripClosingMarkerFromTable(child as TableNode)) {
+            endIndex = j;
+            break;
+          }
           continue;
         }
 
@@ -409,6 +465,12 @@ export default function remarkCodeTabs() {
         }
 
         valid = false;
+      }
+
+      if (endIndex === -1 && tableNode && tableIndex !== -1) {
+        if (stripClosingMarkerFromTable(tableNode as TableNode)) {
+          endIndex = tableIndex;
+        }
       }
 
       if (endIndex === -1 || !valid) {
