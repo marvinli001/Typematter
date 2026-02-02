@@ -22,7 +22,7 @@ export type ContentPage = RegistryPage & {
   plainText: string;
 };
 
-export type ValidationReport = {
+export type PluginValidationReport = {
   errors: Array<{ type: string; message: string; file?: string }>;
   warnings: Array<{ type: string; message: string; file?: string }>;
   error?: (issue: { type: string; message: string; file?: string }) => void;
@@ -55,7 +55,7 @@ export type TypematterPlugin = {
     ) => void | Promise<void>;
     validate?: (
       ctx: BuildContext,
-      report: ValidationReport
+      report: PluginValidationReport
     ) => void | Promise<void>;
     buildEnd?: (
       ctx: BuildContext,
