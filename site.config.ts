@@ -1,6 +1,7 @@
 import { defineSiteConfig } from "./lib/typematter/config";
+import type { SiteConfig } from "./lib/typematter/config";
 
-const siteConfig = defineSiteConfig({
+const siteConfig: SiteConfig = defineSiteConfig({
   title: "Typematter",
   repo: {
     url: "https://example.com/typematter",
