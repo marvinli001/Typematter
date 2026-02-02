@@ -68,13 +68,14 @@ export default function DocsShell({
     ...(tags ?? []),
   ];
   const showNavMeta = Boolean(resolvedStatus || version !== undefined);
-  const repoUrl = siteConfig.repo?.url?.replace(/\/$/, "");
+  const repo = siteConfig.repo;
+  const repoUrl = repo?.url?.replace(/\/$/, "");
   const editBaseUrl =
-    siteConfig.repo?.editBaseUrl?.replace(/\/$/, "") ??
-    (repoUrl ? `${repoUrl}/edit/${siteConfig.repo.branch}` : "");
+    repo?.editBaseUrl?.replace(/\/$/, "") ??
+    (repoUrl && repo?.branch ? `${repoUrl}/edit/${repo.branch}` : "");
   const editUrl =
-    editBaseUrl && docPath
-      ? `${editBaseUrl}/${siteConfig.repo.docsPath}/${docPath}`
+    editBaseUrl && docPath && repo?.docsPath
+      ? `${editBaseUrl}/${repo.docsPath}/${docPath}`
       : "";
   const activeLanguage = languages?.find((lang) => lang.active) ?? languages?.[0];
   const languagePrefix = activeLanguage ? `/${activeLanguage.code}` : "";
