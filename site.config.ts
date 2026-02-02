@@ -1,22 +1,6 @@
-export type SiteConfig = {
-  title: string;
-  repo: {
-    url: string;
-    branch: string;
-    docsPath: string;
-    editBaseUrl?: string;
-  };
-  feedbackUrl: string;
-  i18n?: {
-    defaultLanguage: string;
-    languages: Array<{
-      code: string;
-      label: string;
-    }>;
-  };
-};
+import { defineSiteConfig } from "./lib/typematter/config";
 
-const siteConfig: SiteConfig = {
+const siteConfig = defineSiteConfig({
   title: "Typematter",
   repo: {
     url: "https://example.com/typematter",
@@ -24,7 +8,7 @@ const siteConfig: SiteConfig = {
     docsPath: "content",
     editBaseUrl: "https://example.com/typematter/edit/main",
   },
-  feedbackUrl: "mailto:docs@example.com",
+  feedback: { url: "mailto:docs@example.com" },
   i18n: {
     defaultLanguage: "cn",
     languages: [
@@ -32,6 +16,6 @@ const siteConfig: SiteConfig = {
       { code: "en", label: "English" },
     ],
   },
-};
+});
 
 export default siteConfig;

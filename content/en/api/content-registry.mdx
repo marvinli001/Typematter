@@ -6,6 +6,24 @@ status: experimental
 version: 0.2.0-beta
 ---
 
+## Registry outputs
+
+- `.typematter/registry.json`
+- `.typematter/search-index.json`
+
+## Additional fields
+
+- `contentRoute`
+- `contentPath`
+- `language`
+- `description`
+- `toc`
+- `components`
+- `hidden`
+- `pager`
+
+Use `typematter export-registry` to generate the registry during builds.
+
 A build-time scan generates a content index that includes routes, titles, ordering, and TOC data.
 
 ## Fields

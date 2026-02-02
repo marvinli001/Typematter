@@ -1,7 +1,7 @@
-﻿import type { NavConfig } from "./lib/nav";
+﻿import { defineNavConfig } from "./lib/typematter/config";
 import siteConfig from "./site.config";
 
-const navConfig: NavConfig = {
+const navConfig = defineNavConfig<string>()({
   appendUnlisted: true,
   groups: [
     {
@@ -23,6 +23,7 @@ const navConfig: NavConfig = {
     {
       title: "API",
       items: [
+        { type: "doc", slug: "api/typematter-api" },
         { type: "doc", slug: "api/content-registry" },
         { type: "doc", slug: "api/build-validation" },
       ],
@@ -43,6 +44,6 @@ const navConfig: NavConfig = {
       ],
     },
   ],
-};
+});
 
 export default navConfig;

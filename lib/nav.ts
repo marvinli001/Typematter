@@ -1,6 +1,7 @@
 import navConfig from "../nav.config";
-import { getAllDocEntries, normalizeRoute } from "./docs";
+import { normalizeRoute } from "./docs";
 import { getI18nConfig } from "./i18n";
+import { loadRegistry } from "./typematter/build-registry";
 
 export type NavItemConfig =
   | {
@@ -54,22 +55,31 @@ function normalizeConfigSlug(slug: string) {
   return normalizeRoute(slug);
 }
 
-function sortDocs<T extends { frontmatter: { order: number; title: string } }>(
-  docs: T[]
-) {
+function sortDocs<T extends { order: number; title: string }>(docs: T[]) {
   return docs.sort((a, b) => {
-    if (a.frontmatter.order !== b.frontmatter.order) {
-      return a.frontmatter.order - b.frontmatter.order;
+    if (a.order !== b.order) {
+      return a.order - b.order;
     }
-    return a.frontmatter.title.localeCompare(b.frontmatter.title);
+    return a.title.localeCompare(b.title);
   });
 }
 
-function buildAutoGroups(remainingDocs: ReturnType<typeof getAllDocEntries>) {
-  const groupsMap = new Map<string, ReturnType<typeof getAllDocEntries>>();
+type RegistryDoc = {
+  route: string;
+  contentRoute: string;
+  title: string;
+  order: number;
+  section: string;
+  status?: string;
+  version?: string | number;
+  hidden?: boolean;
+};
+
+function buildAutoGroups(remainingDocs: RegistryDoc[]) {
+  const groupsMap = new Map<string, RegistryDoc[]>();
 
   remainingDocs.forEach((doc) => {
-    const section = doc.frontmatter.section || "General";
+    const section = doc.section || "General";
     if (!groupsMap.has(section)) {
       groupsMap.set(section, []);
     }
@@ -82,10 +92,10 @@ function buildAutoGroups(remainingDocs: ReturnType<typeof getAllDocEntries>) {
     .forEach(([section, docs]) => {
       const items = sortDocs(docs).map((doc) => ({
         type: "doc" as const,
-        title: doc.frontmatter.title,
+        title: doc.title,
         href: doc.route,
-        status: doc.frontmatter.status,
-        version: doc.frontmatter.version,
+        status: doc.status,
+        version: doc.version,
       }));
 
       groups.push({ title: section, items });
@@ -94,21 +104,28 @@ function buildAutoGroups(remainingDocs: ReturnType<typeof getAllDocEntries>) {
   return groups;
 }
 
-export function getNavData(language?: string): NavData {
+export function getNavData(
+  language?: string,
+  options?: { buildIfMissing?: boolean }
+): NavData {
+  const registry = loadRegistry({
+    buildIfMissing:
+      options?.buildIfMissing ?? process.env.NODE_ENV !== "production",
+  });
   const i18nConfig = getI18nConfig();
   const resolvedLanguage = i18nConfig.enabled
     ? language ?? i18nConfig.defaultLanguage ?? undefined
     : undefined;
   const docs = i18nConfig.enabled
-    ? getAllDocEntries().filter((doc) => doc.language === resolvedLanguage)
-    : getAllDocEntries();
+    ? registry.pages.filter((doc) => doc.language === resolvedLanguage)
+    : registry.pages;
   const docMap = new Map(docs.map((doc) => [doc.contentRoute, doc]));
   const allRoutes = new Set(docs.map((doc) => doc.route));
   const usedRoutes = new Set<string>();
   const hiddenRoutes = new Set<string>();
 
   docs.forEach((doc) => {
-    if (doc.frontmatter.hidden) {
+    if (doc.hidden) {
       hiddenRoutes.add(doc.route);
     }
   });
@@ -149,10 +166,10 @@ export function getNavData(language?: string): NavData {
       usedRoutes.add(doc.route);
       items.push({
         type: "doc",
-        title: item.title ?? doc.frontmatter.title,
+        title: item.title ?? doc.title,
         href: doc.route,
-        status: doc.frontmatter.status,
-        version: doc.frontmatter.version,
+        status: doc.status,
+        version: doc.version,
       });
     });
 

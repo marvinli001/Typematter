@@ -2,12 +2,16 @@
   "name": "typematter",
   "version": "0.2.0-beta",
   "private": true,
+  "bin": {
+    "typematter": "bin/typematter.js"
+  },
   "scripts": {
-    "dev": "next dev",
-    "prebuild": "npm run validate:docs",
-    "build": "next build",
-    "start": "next start",
-    "validate:docs": "tsx scripts/validate-docs.ts"
+    "typematter": "tsx scripts/typematter.ts",
+    "dev": "npm run typematter -- dev",
+    "build": "npm run typematter -- build",
+    "start": "npm run typematter -- serve",
+    "validate:docs": "npm run typematter -- validate",
+    "export:registry": "npm run typematter -- export-registry"
   },
   "dependencies": {
     "@mdx-js/mdx": "^3.0.0",

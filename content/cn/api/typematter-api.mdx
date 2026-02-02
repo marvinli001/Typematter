@@ -1,0 +1,123 @@
+---
+title: Typematter API
+order: 0
+section: API
+status: experimental
+version: 0.2.0-beta
+---
+
+Typematter 的 API 设计对齐主流文档系统的共性能力：统一 CLI、声明式配置、插件/钩子机制、内置 MDX 组件库，以及编译期生成导航与搜索索引。目标是保持内容与渲染解耦，同时保证构建可缓存、可回滚、可扩展。
+
+<Callout type="note" title="构建期优先">
+所有内容扫描、路由生成与索引构建必须在编译期完成，运行时仅允许轻量交互，不允许再次扫描文件系统。
+</Callout>
+
+## CLI 命令层
+
+- `typematter dev`：本地开发服务器，监听 `content/` 并增量刷新 registry。
+- `typematter build`：扫描内容、生成 registry、运行验证并输出静态站点。
+- `typematter validate`：仅运行文档质量验证，适合 CI。
+- `typematter new`：脚手架新项目或添加语言目录。
+- `typematter export-registry`：导出 `contentRegistry.json` 供运行时或外部系统使用。
+- `typematter serve`（可选）：预览已构建站点。
+
+## 站点配置
+
+站点配置集中在 `site.config.ts`，负责全局行为与插件注册，建议通过 `defineSiteConfig()` 提供强类型约束：
+
+```ts
+export default defineSiteConfig({
+  title: "Typematter",
+  contentDir: "content",
+  i18n: {
+    defaultLanguage: "cn",
+    languages: [
+      { code: "cn", label: "简体中文" },
+      { code: "en", label: "English" },
+    ],
+  },
+  repo: {
+    url: "https://example.com/typematter",
+    branch: "main",
+    docsPath: "content",
+    editBaseUrl: "https://example.com/typematter/edit/main",
+  },
+  feedback: { url: "mailto:docs@example.com" },
+  plugins: [searchIndex(), apiReference()],
+  validation: {
+    rules: {
+      brokenLinks: "error",
+      duplicateTitles: "error",
+      orphanPages: "warn",
+    },
+  },
+});
+```
+
+## 导航配置
+
+`nav.config.ts` 只负责展示顺序与隐藏，不允许创建虚拟页面。所有 `doc` 项必须引用真实存在的路由：
+
+```ts
+export default defineNavConfig<Route>()({
+  appendUnlisted: true,
+  groups: [
+    {
+      title: "API",
+      items: [
+        { type: "doc", slug: "api/typematter-api" },
+        { type: "doc", slug: "api/content-registry" },
+      ],
+    },
+  ],
+});
+```
+
+## 插件与钩子
+
+插件用于扩展 Markdown 语法、生成搜索索引、生成 API 参考页、版本切换等逻辑。所有钩子在构建期执行：
+
+```ts
+export type TypematterPlugin = {
+  name: string;
+  mdx?: { remark?: any[]; rehype?: any[] };
+  hooks?: {
+    buildStart?(ctx): void | Promise<void>;
+    contentCollected?(ctx, pages): void | Promise<void>;
+    pageParsed?(ctx, page): void | Promise<void>;
+    pageRendered?(ctx, page): void | Promise<void>;
+    registryReady?(ctx, registry): void | Promise<void>;
+    validate?(ctx, report): void | Promise<void>;
+    buildEnd?(ctx, result): void | Promise<void>;
+  };
+};
+```
+
+## MDX 组件与语义一致性
+
+内置组件库用于保证一致的阅读语义（Callout、Columns、Diff、Tabs 等）。新增组件需同步更新组件注册表与构建期使用检测，避免出现一次性变体。
+
+## Content Registry
+
+构建期生成 `contentRegistry.json`，包含路由、标题、顺序、章节、状态/版本/标签、TOC 与组件使用信息，并支持缓存：
+
+```ts
+type ContentRegistry = {
+  pages: Array<{
+    route: string;
+    title: string;
+    order: number;
+    section: string;
+    status?: string;
+    version?: string | number;
+    tags?: string[];
+    toc: Array<{ id: string; title: string; level: number }>;
+  }>;
+};
+```
+
+运行时只读取 registry，不再扫描文件系统。
+
+## 构建验证
+
+验证是第一等公民，内置规则包括：断链、重复标题、孤立页面、无效 frontmatter、空目录等。规则支持 `error | warn | off` 并允许插件扩展。

@@ -1,0 +1,123 @@
+---
+title: Typematter API
+order: 0
+section: API
+status: experimental
+version: 0.2.0-beta
+---
+
+Typematter aligns with common doc-system capabilities: a unified CLI, declarative config, plugins/hooks, built-in MDX components, and build-time navigation + search indexing. The goal is to keep content and runtime rendering decoupled while remaining static and cache-friendly.
+
+<Callout type="note" title="Build-time only">
+All content scanning, route generation, and indexing must run at build time. Runtime should only handle lightweight UI interactions.
+</Callout>
+
+## CLI layer
+
+- `typematter dev`: local dev server with content watching and incremental registry refresh.
+- `typematter build`: scan content, generate registry, run validation, and build the static site.
+- `typematter validate`: run validation only (CI-friendly).
+- `typematter new`: scaffold a new project or add a language directory.
+- `typematter export-registry`: export `contentRegistry.json` for runtime or external use.
+- `typematter serve` (optional): preview the built site.
+
+## Site config
+
+`site.config.ts` owns global behavior and plugin registration. Prefer a typed helper like `defineSiteConfig()`:
+
+```ts
+export default defineSiteConfig({
+  title: "Typematter",
+  contentDir: "content",
+  i18n: {
+    defaultLanguage: "cn",
+    languages: [
+      { code: "cn", label: "简体中文" },
+      { code: "en", label: "English" },
+    ],
+  },
+  repo: {
+    url: "https://example.com/typematter",
+    branch: "main",
+    docsPath: "content",
+    editBaseUrl: "https://example.com/typematter/edit/main",
+  },
+  feedback: { url: "mailto:docs@example.com" },
+  plugins: [searchIndex(), apiReference()],
+  validation: {
+    rules: {
+      brokenLinks: "error",
+      duplicateTitles: "error",
+      orphanPages: "warn",
+    },
+  },
+});
+```
+
+## Navigation config
+
+`nav.config.ts` only controls ordering and visibility. `doc` items must point to real pages:
+
+```ts
+export default defineNavConfig<Route>()({
+  appendUnlisted: true,
+  groups: [
+    {
+      title: "API",
+      items: [
+        { type: "doc", slug: "api/typematter-api" },
+        { type: "doc", slug: "api/content-registry" },
+      ],
+    },
+  ],
+});
+```
+
+## Plugins and hooks
+
+Plugins extend Markdown syntax, generate search indices, build API reference pages, or manage versioning. Hooks only run at build time:
+
+```ts
+export type TypematterPlugin = {
+  name: string;
+  mdx?: { remark?: any[]; rehype?: any[] };
+  hooks?: {
+    buildStart?(ctx): void | Promise<void>;
+    contentCollected?(ctx, pages): void | Promise<void>;
+    pageParsed?(ctx, page): void | Promise<void>;
+    pageRendered?(ctx, page): void | Promise<void>;
+    registryReady?(ctx, registry): void | Promise<void>;
+    validate?(ctx, report): void | Promise<void>;
+    buildEnd?(ctx, result): void | Promise<void>;
+  };
+};
+```
+
+## MDX components
+
+Built-in components preserve consistent semantics (Callout, Columns, Diff, Tabs, etc.). New components should be registered and detected at build time to avoid one-off variants.
+
+## Content registry
+
+`contentRegistry.json` is generated during the build and includes routes, titles, ordering, sections, status/version/tags, TOC, and component usage:
+
+```ts
+type ContentRegistry = {
+  pages: Array<{
+    route: string;
+    title: string;
+    order: number;
+    section: string;
+    status?: string;
+    version?: string | number;
+    tags?: string[];
+    toc: Array<{ id: string; title: string; level: number }>;
+  }>;
+};
+```
+
+Runtime reads the registry only and must not rescan the filesystem.
+
+## Build validation
+
+Validation is first-class: broken links, duplicate titles, orphan pages, invalid frontmatter, empty directories, and more. Rules support `error | warn | off` and can be extended by plugins.

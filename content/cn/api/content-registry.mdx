@@ -6,6 +6,24 @@ status: experimental
 version: 0.2.0-beta
 ---
 
+## Registry 输出
+
+- `.typematter/registry.json`
+- `.typematter/search-index.json`
+
+## 额外字段
+
+- `contentRoute`
+- `contentPath`
+- `language`
+- `description`
+- `toc`
+- `components`
+- `hidden`
+- `pager`
+
+可通过 `typematter export-registry` 在构建期导出 registry。
+
 构建期扫描并生成一份内容索引，包含路由、标题、顺序与 TOC 信息。
 
 ## 输出字段

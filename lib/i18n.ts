@@ -42,7 +42,10 @@ export function getI18nConfig(): I18nConfig {
     return cachedConfig;
   }
 
-  const contentDir = path.join(process.cwd(), "content");
+  const contentDir = path.join(
+    process.cwd(),
+    siteConfig.contentDir ?? "content"
+  );
   const configured = getConfiguredLanguages();
   const available = new Set<string>();
 

@@ -9,6 +9,7 @@ import { visit } from "unist-util-visit";
 import { toString } from "mdast-util-to-string";
 import GithubSlugger from "github-slugger";
 import { clearI18nCache, getI18nConfig } from "./i18n";
+import siteConfig from "../site.config";
 
 export type DocFrontmatter = {
   title: string;
@@ -43,7 +44,10 @@ export type DocEntry = {
   language?: string;
 };
 
-const CONTENT_DIR = path.join(process.cwd(), "content");
+const CONTENT_DIR = path.join(
+  process.cwd(),
+  siteConfig.contentDir ?? "content"
+);
 let cachedDocs: DocEntry[] | null = null;
 
 export function getContentDir() {
