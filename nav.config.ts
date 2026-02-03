@@ -1,6 +1,7 @@
 ﻿import { defineNavConfig } from "./lib/typematter/config";
 import siteConfig from "./site.config";
 
+const repoUrl = siteConfig.repo?.url ?? "";
 const navConfig = defineNavConfig<string>()({
   appendUnlisted: true,
   groups: [
@@ -38,8 +39,8 @@ const navConfig = defineNavConfig<string>()({
         {
           type: "external",
           title: "Git repository",
-          href: siteConfig.repo.url,
-          hidden: !siteConfig.repo.url,
+          href: repoUrl,
+          hidden: !repoUrl,
         },
       ],
     },
