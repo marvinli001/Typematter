@@ -20,7 +20,7 @@
     "gray-matter": "^4.0.3",
     "katex": "^0.16.28",
     "mdast-util-to-string": "^4.0.0",
-    "next": "latest",
+    "next": "16.1.6",
     "react": "latest",
     "react-dom": "latest",
     "rehype-autolink-headings": "^7.1.0",
