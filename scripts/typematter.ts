@@ -151,9 +151,11 @@ function runValidate() {
 
 function runExportRegistry() {
   const result = buildRegistry();
-  const { registryPath, searchPath } = writeRegistryFiles(result);
+  const { registryPath, searchPath, askPath, publicAskPath } = writeRegistryFiles(result);
   console.log(`Registry written: ${registryPath}`);
   console.log(`Search index written: ${searchPath}`);
+  console.log(`Ask index written: ${askPath}`);
+  console.log(`Public ask index written: ${publicAskPath}`);
 }
 
 function runNew(options: Record<string, string | boolean>) {

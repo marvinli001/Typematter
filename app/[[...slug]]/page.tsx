@@ -6,6 +6,7 @@ import { getNavData } from "../../lib/nav";
 import { getI18nConfig } from "../../lib/i18n";
 import { renderMdx } from "../../lib/mdx";
 import { loadRegistry, loadSearchIndex } from "../../lib/typematter/build-registry";
+import siteConfig from "../../site.config";
 
 export const dynamicParams = false;
 export const dynamic = "force-static";
@@ -124,6 +125,38 @@ export default async function DocPage({
   const resolvedPager =
     pager && (pager.prev || pager.next) ? pager : undefined;
 
+  const askEndpoint = process.env.NEXT_PUBLIC_TYPEMATTER_ASK_AI_ENDPOINT?.trim();
+  const askEnabledEnv = process.env.NEXT_PUBLIC_TYPEMATTER_ASK_AI_ENABLED?.trim();
+  const askEnabled =
+    askEnabledEnv === undefined || askEnabledEnv.length === 0
+      ? Boolean(askEndpoint)
+      : /^(1|true|yes|on)$/i.test(askEnabledEnv);
+  const timeoutCandidate = Number.parseInt(
+    process.env.NEXT_PUBLIC_TYPEMATTER_ASK_AI_TIMEOUT_MS ?? "",
+    10
+  );
+  const timeoutMs =
+    Number.isFinite(timeoutCandidate) && timeoutCandidate > 0
+      ? timeoutCandidate
+      : 25_000;
+  const askUiConfig = siteConfig.askAi;
+  const examples = askUiConfig?.examples?.[activeLanguage ?? ""] ?? [];
+  const askAi = {
+    enabled: askEnabled && Boolean(askEndpoint),
+    endpoint: askEndpoint,
+    timeoutMs,
+    defaultScope: askUiConfig?.defaultScope ?? "page",
+    recentLimit: askUiConfig?.recentLimit ?? 6,
+    followupLimit: askUiConfig?.followupLimit ?? 3,
+    examples,
+  };
+  const askContext = {
+    language: activeLanguage ?? "default",
+    currentRoute: doc.route,
+    currentSection: doc.frontmatter.section,
+    title: doc.frontmatter.title,
+  };
+
   return (
     <DocsShell
       navGroups={groups}
@@ -139,6 +172,8 @@ export default async function DocPage({
       docPath={doc.relativePath}
       languages={languages}
       pager={resolvedPager}
+      askAi={askAi}
+      askContext={askContext}
     >
       {content}
     </DocsShell>

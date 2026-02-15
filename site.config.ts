@@ -17,6 +17,23 @@ const siteConfig: SiteConfig = defineSiteConfig({
       { code: "en", label: "English" },
     ],
   },
+  askAi: {
+    defaultScope: "page",
+    recentLimit: 6,
+    followupLimit: 3,
+    examples: {
+      cn: [
+        "这个页面的核心结论是什么？",
+        "基于文档给我一个最短可执行步骤。",
+        "有哪些常见错误和排查方式？",
+      ],
+      en: [
+        "What are the key takeaways from this page?",
+        "Give me the shortest actionable steps from the docs.",
+        "What are common mistakes and how to debug them?",
+      ],
+    },
+  },
 });
 
 export default siteConfig;

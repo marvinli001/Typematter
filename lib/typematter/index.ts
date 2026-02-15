@@ -1,4 +1,5 @@
 export * from "./config";
+export * from "./ask";
 export * from "./build-registry";
 export * from "./plugin";
 export * from "./registry";

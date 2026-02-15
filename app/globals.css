@@ -487,6 +487,233 @@ code {
   color: var(--text-soft);
 }
 
+.search-tabs-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.7rem;
+}
+
+.search-tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface-muted);
+}
+
+.search-tab {
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-family: inherit;
+  font-weight: 500;
+  padding: 0.25rem 0.7rem;
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+}
+
+.search-tab:hover {
+  color: var(--text);
+}
+
+.search-tab.active {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+.ask-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  overflow-y: auto;
+  padding-right: 0.2rem;
+}
+
+.ask-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.ask-input-row {
+  margin-bottom: 0.1rem;
+}
+
+.ask-submit {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-muted);
+  color: var(--text);
+  font-size: 0.78rem;
+  font-weight: 600;
+  font-family: inherit;
+  padding: 0.25rem 0.75rem;
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease;
+}
+
+.ask-submit:hover {
+  background: var(--surface);
+}
+
+.ask-submit:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.ask-scope-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.ask-scope {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: 0.74rem;
+  font-weight: 500;
+  font-family: inherit;
+  padding: 0.2rem 0.65rem;
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+}
+
+.ask-scope.active {
+  background: var(--surface-muted);
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+.ask-chip-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.ask-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.ask-chip {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-family: inherit;
+  text-align: left;
+  padding: 0.3rem 0.55rem;
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease;
+}
+
+.ask-chip:hover {
+  background: var(--surface-muted);
+  border-color: var(--border-strong);
+}
+
+.ask-sources {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.ask-source-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.ask-source-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.5rem 0.6rem;
+  background: var(--surface);
+  transition: border-color 0.18s ease, background 0.18s ease;
+}
+
+.ask-source-card:hover {
+  background: var(--surface-muted);
+  border-color: var(--border-strong);
+}
+
+.ask-source-title {
+  font-size: 0.8rem;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.ask-source-snippet {
+  font-size: 0.78rem;
+  color: var(--text-soft);
+  line-height: 1.45;
+}
+
+.ask-inline-status {
+  font-size: 0.82rem;
+  color: var(--text-soft);
+  padding: 0.2rem;
+}
+
+.ask-answer {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  padding: 0.7rem 0.8rem;
+}
+
+.ask-answer-text {
+  white-space: pre-wrap;
+  font-size: 0.88rem;
+  color: var(--text);
+  line-height: 1.58;
+}
+
+.ask-empty {
+  font-size: 0.82rem;
+  color: var(--text-soft);
+}
+
+.ask-error {
+  font-size: 0.82rem;
+  color: var(--danger);
+}
+
+.ask-copy {
+  align-self: flex-start;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.28rem 0.75rem;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.78rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+
+.ask-copy:hover {
+  background: var(--surface-muted);
+}
+
+.ask-copy.copied {
+  color: var(--success);
+  border-color: rgba(22, 163, 74, 0.45);
+}
+
 body.search-open {
   overflow: hidden;
 }

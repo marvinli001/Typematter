@@ -42,6 +42,21 @@ type DocsShellProps = {
     prev?: { title: string; href: string };
     next?: { title: string; href: string };
   };
+  askAi?: {
+    enabled: boolean;
+    endpoint?: string;
+    timeoutMs: number;
+    defaultScope: "page" | "section" | "site";
+    recentLimit: number;
+    followupLimit: number;
+    examples: string[];
+  };
+  askContext?: {
+    language: string;
+    currentRoute: string;
+    currentSection: string;
+    title: string;
+  };
   children: ReactNode;
 };
 
@@ -59,6 +74,8 @@ export default function DocsShell({
   docPath,
   languages,
   pager,
+  askAi,
+  askContext,
   children,
 }: DocsShellProps) {
   const resolvedStatus = status ? STATUS_LABELS[status] ?? status : undefined;
@@ -323,7 +340,7 @@ export default function DocsShell({
               ) : null}
             </article>
           </div>
-          <SearchModal items={searchItems} />
+          <SearchModal items={searchItems} askAi={askAi} askContext={askContext} />
         </main>
 
         <aside className="toc">

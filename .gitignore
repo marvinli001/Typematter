@@ -8,6 +8,7 @@ out/
 .vercel/
 .swc/
 .typematter/
+public/typematter/
 
 # Logs
 *.log

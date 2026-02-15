@@ -1,0 +1,12 @@
+name = "typematter-ask-ai"
+main = "src/index.ts"
+compatibility_date = "2025-12-01"
+
+[ai]
+binding = "AI"
+
+[vars]
+DOCS_ORIGIN = "https://docs.example.com"
+OPENAI_API_HOST = "https://api.openai.com/v1"
+OPENAI_MODEL = "gpt-5-mini"
+AI_SEARCH_INSTANCE = "your-ai-search-instance-name"

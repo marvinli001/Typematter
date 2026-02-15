@@ -36,6 +36,13 @@ export type RepoConfig = {
   editBaseUrl?: string;
 };
 
+export type AskAiUiConfig = {
+  defaultScope?: "page" | "section" | "site";
+  recentLimit?: number;
+  followupLimit?: number;
+  examples?: Record<string, string[]>;
+};
+
 export type SiteConfig = {
   title: string;
   contentDir?: string;
@@ -44,6 +51,7 @@ export type SiteConfig = {
     url: string;
   };
   i18n?: I18nConfig;
+  askAi?: AskAiUiConfig;
   plugins?: TypematterPlugin[];
   validation?: ValidationConfig;
 };

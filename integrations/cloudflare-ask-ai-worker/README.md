@@ -1,0 +1,124 @@
+# Typematter Ask AI Worker
+
+Cloudflare Worker endpoint for Typematter `Ask AI` tab.
+
+## 功能
+
+- 提供 `POST /v1/ask` SSE 接口。
+- 混合召回流程：
+  - 关键词召回：`/typematter/ask-index.json`
+  - 向量召回：Cloudflare AI Search（`env.AI.autorag(...).search`）
+  - RRF 重排 + 上下文压缩
+- 调用 OpenAI Chat Completions 并流式返回。
+- SSE 事件顺序：
+  1. `sources`
+  2. `delta`（多次）
+  3. `done`
+  4. 异常时 `error`
+
+## 前置条件
+
+- 你已经有 Cloudflare 账号与可用的 AI Search 实例。
+- 文档站点可访问，且已生成 `https://<docs-origin>/typematter/ask-index.json`。
+- 你有可用的 OpenAI API Key。
+
+## 方式 A：Cloudflare Dashboard（Git 仓库部署，和你截图对应）
+
+### 1) 创建 Worker 项目
+
+1. 进入 Cloudflare Dashboard → Workers & Pages → Create。
+2. 选择从 Git 仓库创建（连接你的 Typematter 仓库）。
+3. 项目名称建议：`typematter-ask-ai`。
+
+### 2) 构建与部署命令（关键）
+
+推荐配置（仓库根目录作为项目目录）：
+
+- 构建命令：留空（可选），或 `echo "skip build"`
+- 部署命令：`npx wrangler deploy --config integrations/cloudflare-ask-ai-worker/wrangler.toml`
+
+如果你在高级设置里把 Root directory 设为 `integrations/cloudflare-ask-ai-worker`，则可改为：
+
+- 构建命令：留空（可选）
+- 部署命令：`npx wrangler deploy`
+
+### 3) 配置环境变量与密钥
+
+在 Worker 项目 Settings → Variables and Secrets 中配置：
+
+- 普通变量（Variables）：
+  - `OPENAI_API_HOST=https://api.vistru.cn/v1`
+  - `OPENAI_MODEL=gpt-oss-120b`（或你的模型）
+  - `AI_SEARCH_INSTANCE=<你的 AI Search 实例名>`
+  - `DOCS_ORIGIN=https://<你的文档域名>`
+- 密钥（Secrets）：
+  - `OPENAI_API_KEY=<你的 OpenAI Key>`
+
+说明：
+
+- `DOCS_ORIGIN` 必须和你的文档站点 origin 一致（用于 CORS 与拉取 ask-index）。
+- `OPENAI_API_HOST` 需包含 `/v1`，因为代码会请求 `${OPENAI_API_HOST}/chat/completions`。
+
+### 4) 部署并获取 Worker 域名
+
+1. 点击部署。
+2. 部署成功后记录 Worker URL，例如：`https://typematter-ask-ai.<subdomain>.workers.dev`。
+
+## 方式 B：本地 Wrangler CLI 部署
+
+1. 登录 Cloudflare：
+   - `npm i -g wrangler`
+   - `wrangler login`
+2. 进入本目录：
+   - `cd integrations/cloudflare-ask-ai-worker`
+3. 配置密钥：
+   - `wrangler secret put OPENAI_API_KEY`
+4. 修改 `wrangler.toml` 中变量：
+   - `DOCS_ORIGIN`
+   - `OPENAI_API_HOST`
+   - `OPENAI_MODEL`
+   - `AI_SEARCH_INSTANCE`
+5. 部署：
+   - `wrangler deploy`
+
+## Typematter 站点侧配置
+
+在文档站点构建环境设置：
+
+- `NEXT_PUBLIC_TYPEMATTER_ASK_AI_ENDPOINT=https://<worker-domain>`
+- `NEXT_PUBLIC_TYPEMATTER_ASK_AI_TIMEOUT_MS=25000`（可选）
+- `NEXT_PUBLIC_TYPEMATTER_ASK_AI_ENABLED=true`（可选；不填时按 endpoint 自动启用）
+
+## 快速验收
+
+### 1) 检查 ask-index 是否可访问
+
+```bash
+curl -I https://<docs-origin>/typematter/ask-index.json
+```
+
+### 2) 检查 Worker SSE 是否返回
+
+```bash
+curl -N https://<worker-domain>/v1/ask \
+  -H "Content-Type: application/json" \
+  -d '{
+    "question":"这个页面的核心结论是什么？",
+    "language":"cn",
+    "scope":"page",
+    "currentRoute":"/cn/core-concepts/components",
+    "currentSection":"Core concepts",
+    "siteContext":{"title":"Components"}
+  }'
+```
+
+预期可看到 `event: sources` 先出现，再出现 `event: delta`。
+
+## 常见问题
+
+- 部署成功但前端没有 Ask AI Tab：
+  - 检查 `NEXT_PUBLIC_TYPEMATTER_ASK_AI_ENDPOINT` 是否已注入到前端构建环境。
+- Worker 返回 CORS 错误：
+  - 检查 `DOCS_ORIGIN` 是否与实际站点 origin 完全一致（协议、域名都要一致）。
+- Worker 提示找不到 ask-index：
+  - 先运行 `npm run typematter -- export-registry`，确保 `public/typematter/ask-index.json` 已生成并随站点发布。

@@ -16,6 +16,7 @@ Typematter is a static-first documentation shell built around MDX. The system em
 - Component registry for reusable doc patterns
 - Content validation (broken links, duplicate titles, orphan pages)
 - Lightweight search and page copy utilities
+- Optional Ask AI tab in search modal (Cloudflare AI Search + Chat Completions)
 - Multilingual content support (when enabled)
 
 ## Project structure
@@ -44,6 +45,23 @@ Validate docs only:
 ```bash
 npm run validate:docs
 ```
+
+## Ask AI setup
+Ask AI is disabled by default. It is enabled only when a public endpoint is configured.
+
+Client-side build env vars:
+
+```bash
+NEXT_PUBLIC_TYPEMATTER_ASK_AI_ENDPOINT=https://<your-worker-domain>
+NEXT_PUBLIC_TYPEMATTER_ASK_AI_TIMEOUT_MS=25000 # optional
+NEXT_PUBLIC_TYPEMATTER_ASK_AI_ENABLED=true      # optional
+```
+
+Worker reference implementation:
+
+- `integrations/cloudflare-ask-ai-worker/src/index.ts`
+- `integrations/cloudflare-ask-ai-worker/wrangler.toml`
+- `integrations/cloudflare-ask-ai-worker/README.md`
 
 ## Authoring docs
 Each page is an MDX file with frontmatter:
