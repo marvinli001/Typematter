@@ -22,7 +22,6 @@ type AskAiConfig = {
   endpoint?: string;
   timeoutMs: number;
   defaultScope: AskScope;
-  recentLimit: number;
   followupLimit: number;
   examples: string[];
 };
@@ -49,7 +48,6 @@ type UiCopy = {
   noAnswerYet: string;
   sourcesTitle: string;
   examplesTitle: string;
-  recentTitle: string;
   followupsTitle: string;
   retrievingSources: string;
   askButton: string;
@@ -67,9 +65,12 @@ type UiCopy = {
   hideErrorDetails: string;
   copyErrorDetails: string;
   copiedErrorDetails: string;
+  assistantGreeting: string;
+  assistantIntro: string;
+  assistantPrompt: string;
+  thinking: string;
 };
 
-const RECENT_KEY_PREFIX = "typematter-ask-recent";
 const COPY_FEEDBACK_MS = 1200;
 const ERROR_SUMMARY_MAX_LENGTH = 140;
 
@@ -85,7 +86,6 @@ const EN_COPY: UiCopy = {
   noAnswerYet: "Ask a question to get a cited answer.",
   sourcesTitle: "Sources",
   examplesTitle: "Example questions",
-  recentTitle: "Recent questions",
   followupsTitle: "Suggested follow-ups",
   retrievingSources: "Retrieving sources...",
   askButton: "Ask",
@@ -103,6 +103,11 @@ const EN_COPY: UiCopy = {
   hideErrorDetails: "Hide details",
   copyErrorDetails: "Copy full error",
   copiedErrorDetails: "Copied",
+  assistantGreeting: "Hi!",
+  assistantIntro:
+    "I'm an AI assistant trained on this documentation and related pages.",
+  assistantPrompt: "Ask me anything about this page or the docs.",
+  thinking: "Thinking...",
 };
 
 const CN_COPY: UiCopy = {
@@ -112,7 +117,6 @@ const CN_COPY: UiCopy = {
   noAnswerYet: "输入问题后可获得带引用的答案。",
   sourcesTitle: "来源",
   examplesTitle: "示例问题",
-  recentTitle: "最近问题",
   followupsTitle: "推荐追问",
   retrievingSources: "正在检索来源...",
   askButton: "提问",
@@ -130,6 +134,10 @@ const CN_COPY: UiCopy = {
   hideErrorDetails: "收起详情",
   copyErrorDetails: "复制完整报错",
   copiedErrorDetails: "已复制",
+  assistantGreeting: "你好！",
+  assistantIntro: "我是基于当前文档训练的 AI 助手，可以按证据回答问题。",
+  assistantPrompt: "你可以直接提问当前页或全站内容。",
+  thinking: "思考中...",
 };
 
 function isModifiedKey(event: KeyboardEvent) {
@@ -319,6 +327,7 @@ export default function SearchModal({ items, askAi, askContext }: SearchModalPro
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
   const [askQuestion, setAskQuestion] = useState("");
+  const [lastAskedQuestion, setLastAskedQuestion] = useState("");
   const [askScope, setAskScope] = useState<AskScope>(askAi?.defaultScope ?? "page");
   const [askLoading, setAskLoading] = useState(false);
   const [askAnswer, setAskAnswer] = useState("");
@@ -328,7 +337,6 @@ export default function SearchModal({ items, askAi, askContext }: SearchModalPro
   const [askErrorExpanded, setAskErrorExpanded] = useState(false);
   const [askErrorCopied, setAskErrorCopied] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [recentQuestions, setRecentQuestions] = useState<string[]>([]);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const askInputRef = useRef<HTMLInputElement | null>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -339,9 +347,10 @@ export default function SearchModal({ items, askAi, askContext }: SearchModalPro
   const searchParams = useSearchParams();
   const askEnabled = Boolean(askAi?.enabled && askAi.endpoint && askContext);
   const copy = toBooleanLanguageCN(askContext?.language) ? CN_COPY : EN_COPY;
-  const recentLimit = askAi?.recentLimit ?? 6;
   const followupLimit = askAi?.followupLimit ?? 3;
   const askEndpoint = askAi?.endpoint ? resolveAskEndpoint(askAi.endpoint) : "";
+  const hasConversation =
+    lastAskedQuestion.length > 0 || askLoading || askAnswer.length > 0 || Boolean(askError);
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -404,25 +413,6 @@ export default function SearchModal({ items, askAi, askContext }: SearchModalPro
   }
 
   useEffect(() => {
-    if (!askEnabled || !askContext?.language) {
-      setRecentQuestions([]);
-      return;
-    }
-    try {
-      const storageKey = `${RECENT_KEY_PREFIX}:${askContext.language}`;
-      const stored = localStorage.getItem(storageKey);
-      if (!stored) {
-        setRecentQuestions([]);
-        return;
-      }
-      const parsed = safeParseJson<string[]>(stored);
-      setRecentQuestions(Array.isArray(parsed) ? parsed.slice(0, recentLimit) : []);
-    } catch {
-      setRecentQuestions([]);
-    }
-  }, [askEnabled, askContext?.language, recentLimit]);
-
-  useEffect(() => {
     const handleKeydown = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
@@ -477,6 +467,7 @@ export default function SearchModal({ items, askAi, askContext }: SearchModalPro
     setQuery("");
     setActiveIndex(0);
     setAskQuestion("");
+    setLastAskedQuestion("");
     setAskScope(askAi?.defaultScope ?? "page");
     setAskLoading(false);
     setAskAnswer("");
@@ -589,30 +580,6 @@ export default function SearchModal({ items, askAi, askContext }: SearchModalPro
     };
   }, []);
 
-  function persistRecentQuestion(question: string) {
-    if (!askEnabled || !askContext?.language) {
-      return;
-    }
-    const cleaned = question.trim();
-    if (!cleaned) {
-      return;
-    }
-
-    setRecentQuestions((prev) => {
-      const deduped = [cleaned, ...prev.filter((item) => item !== cleaned)].slice(
-        0,
-        recentLimit
-      );
-      try {
-        const storageKey = `${RECENT_KEY_PREFIX}:${askContext.language}`;
-        localStorage.setItem(storageKey, JSON.stringify(deduped));
-      } catch {
-        // ignore storage write errors
-      }
-      return deduped;
-    });
-  }
-
   async function submitAsk(nextQuestion?: string) {
     if (!askEnabled || !askContext || !askEndpoint || askLoading) {
       return;
@@ -624,6 +591,7 @@ export default function SearchModal({ items, askAi, askContext }: SearchModalPro
     }
 
     setAskQuestion(question);
+    setLastAskedQuestion(question);
     setAskLoading(true);
     setAskError(null);
     setAskErrorExpanded(false);
@@ -631,7 +599,6 @@ export default function SearchModal({ items, askAi, askContext }: SearchModalPro
     setAskAnswer("");
     setAskSources([]);
     setAskFollowups([]);
-    persistRecentQuestion(question);
 
     const payload: AskRequest = {
       question,
@@ -881,180 +848,225 @@ export default function SearchModal({ items, askAi, askContext }: SearchModalPro
           </>
         ) : (
           <div className="ask-panel">
-            <form className="ask-form" onSubmit={handleAskSubmit}>
-              <div className="search-input-row ask-input-row">
-                <svg viewBox="0 0 24 24" aria-hidden="true" className="icon">
-                  <path d="M21 12a9 9 0 11-4.2-7.56M8 11h8M8 15h5" />
-                </svg>
-                <input
-                  ref={askInputRef}
-                  className="search-input"
-                  placeholder={copy.askPlaceholder}
-                  value={askQuestion}
-                  onChange={(event) => setAskQuestion(event.target.value)}
-                  autoFocus
-                />
-                <button
-                  type="submit"
-                  className="ask-submit"
-                  disabled={askLoading || askQuestion.trim().length === 0}
-                >
-                  {copy.askButton}
-                </button>
-              </div>
-
-              <div className="ask-scope-row">
-                <button
-                  type="button"
-                  className={`ask-scope${askScope === "page" ? " active" : ""}`}
-                  onClick={() => setAskScope("page")}
-                >
-                  {copy.pageScope}
-                </button>
-                <button
-                  type="button"
-                  className={`ask-scope${askScope === "section" ? " active" : ""}`}
-                  onClick={() => setAskScope("section")}
-                >
-                  {copy.sectionScope}
-                </button>
-                <button
-                  type="button"
-                  className={`ask-scope${askScope === "site" ? " active" : ""}`}
-                  onClick={() => setAskScope("site")}
-                >
-                  {copy.siteScope}
-                </button>
-              </div>
-            </form>
-
-            <div className="ask-chip-group">
-              <div className="search-section-label">{copy.examplesTitle}</div>
-              <div className="ask-chip-list">
-                {askExamples.map((example) => (
-                  <button
-                    type="button"
-                    key={example}
-                    className="ask-chip"
-                    onClick={() => {
-                      setAskQuestion(example);
-                      void submitAsk(example);
-                    }}
-                  >
-                    {example}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {recentQuestions.length > 0 ? (
-              <div className="ask-chip-group">
-                <div className="search-section-label">{copy.recentTitle}</div>
-                <div className="ask-chip-list">
-                  {recentQuestions.map((recent) => (
-                    <button
-                      type="button"
-                      key={recent}
-                      className="ask-chip"
-                      onClick={() => {
-                        setAskQuestion(recent);
-                        void submitAsk(recent);
-                      }}
-                    >
-                      {recent}
-                    </button>
-                  ))}
+            <div className="ask-thread">
+              <div className="ask-message ask-message-assistant ask-intro-message">
+                <span className="ask-avatar" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" className="icon">
+                    <path d="M4 5.5A1.5 1.5 0 015.5 4H11v16H5.5A1.5 1.5 0 014 18.5v-13zM13 4h5.5A1.5 1.5 0 0120 5.5v13a1.5 1.5 0 01-1.5 1.5H13V4z" />
+                  </svg>
+                </span>
+                <div className="ask-message-body">
+                  <p className="ask-intro-line">{copy.assistantGreeting}</p>
+                  <p className="ask-intro-line">{copy.assistantIntro}</p>
+                  <p className="ask-intro-line ask-intro-prompt">
+                    {copy.assistantPrompt}
+                  </p>
                 </div>
               </div>
-            ) : null}
 
-            <div className="ask-sources">
-              <div className="search-section-label">{copy.sourcesTitle}</div>
-              {askSources.length > 0 ? (
-                <div className="ask-source-list">
-                  {askSources.map((source, index) => (
-                    <a
-                      key={`${source.id}-${index}`}
-                      className="ask-source-card"
-                      href={buildSourceHref(source)}
-                    >
-                      <span className="ask-source-title">
-                        [S{index + 1}] {source.title}
-                      </span>
-                      <span className="ask-source-snippet">{source.snippet}</span>
-                    </a>
-                  ))}
-                </div>
-              ) : askLoading ? (
-                <div className="ask-inline-status">{copy.retrievingSources}</div>
-              ) : null}
-            </div>
-
-            <div className="ask-answer">
-              {askError ? (
-                <div className="ask-error-panel">
-                  <div className="ask-error">{askError.summary}</div>
-                  <div className="ask-error-actions">
-                    <button
-                      type="button"
-                      className="ask-error-action"
-                      onClick={() => setAskErrorExpanded((prev) => !prev)}
-                    >
-                      {askErrorExpanded
-                        ? copy.hideErrorDetails
-                        : copy.showErrorDetails}
-                    </button>
-                    <button
-                      type="button"
-                      className={`ask-error-action${askErrorCopied ? " copied" : ""}`}
-                      onClick={handleCopyErrorDetail}
-                    >
-                      {askErrorCopied
-                        ? copy.copiedErrorDetails
-                        : copy.copyErrorDetails}
-                    </button>
+              {lastAskedQuestion ? (
+                <div className="ask-message ask-message-user">
+                  <span className="ask-avatar" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" className="icon">
+                      <path d="M12 12a4 4 0 100-8 4 4 0 000 8zM4 20c0-3.314 3.582-6 8-6s8 2.686 8 6" />
+                    </svg>
+                  </span>
+                  <div className="ask-message-body">
+                    <p className="ask-user-text">{lastAskedQuestion}</p>
                   </div>
-                  {askErrorExpanded ? (
-                    <pre className="ask-error-detail">{askError.detail}</pre>
-                  ) : null}
                 </div>
-              ) : askAnswer ? (
-                <div className="ask-answer-text">{askAnswer}</div>
+              ) : null}
+
+              {hasConversation ? (
+                <div className="ask-message ask-message-assistant ask-response-message">
+                  <span className="ask-avatar" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" className="icon">
+                      <path d="M4 5.5A1.5 1.5 0 015.5 4H11v16H5.5A1.5 1.5 0 014 18.5v-13zM13 4h5.5A1.5 1.5 0 0120 5.5v13a1.5 1.5 0 01-1.5 1.5H13V4z" />
+                    </svg>
+                  </span>
+                  <div className="ask-message-body">
+                    {askError ? (
+                      <div className="ask-error-panel">
+                        <div className="ask-error">{askError.summary}</div>
+                        <div className="ask-error-actions">
+                          <button
+                            type="button"
+                            className="ask-error-action"
+                            onClick={() => setAskErrorExpanded((prev) => !prev)}
+                          >
+                            {askErrorExpanded
+                              ? copy.hideErrorDetails
+                              : copy.showErrorDetails}
+                          </button>
+                          <button
+                            type="button"
+                            className={`ask-error-action${askErrorCopied ? " copied" : ""}`}
+                            onClick={handleCopyErrorDetail}
+                          >
+                            {askErrorCopied
+                              ? copy.copiedErrorDetails
+                              : copy.copyErrorDetails}
+                          </button>
+                        </div>
+                        {askErrorExpanded ? (
+                          <pre className="ask-error-detail">{askError.detail}</pre>
+                        ) : null}
+                      </div>
+                    ) : askAnswer ? (
+                      <div className="ask-answer-text">{askAnswer}</div>
+                    ) : askLoading ? (
+                      <div className="ask-thinking">{copy.thinking}</div>
+                    ) : (
+                      <div className="ask-empty">{copy.noAnswerYet}</div>
+                    )}
+
+                    {askLoading ? (
+                      <div className="ask-inline-status">{copy.retrievingSources}</div>
+                    ) : null}
+
+                    {askSources.length > 0 ? (
+                      <div className="ask-sources">
+                        <div className="search-section-label">{copy.sourcesTitle}</div>
+                        <div className="ask-source-list">
+                          {askSources.map((source, index) => (
+                            <a
+                              key={`${source.id}-${index}`}
+                              className="ask-source-card"
+                              href={buildSourceHref(source)}
+                            >
+                              <span className="ask-source-title">
+                                [S{index + 1}] {source.title}
+                              </span>
+                              <span className="ask-source-snippet">{source.snippet}</span>
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {askFollowups.length > 0 ? (
+                      <div className="ask-chip-group">
+                        <div className="search-section-label">{copy.followupsTitle}</div>
+                        <div className="ask-chip-list">
+                          {askFollowups.map((followup) => (
+                            <button
+                              type="button"
+                              key={followup}
+                              className="ask-chip"
+                              onClick={() => {
+                                setAskQuestion(followup);
+                                void submitAsk(followup);
+                              }}
+                            >
+                              {followup}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {askAnswer ? (
+                      <button
+                        type="button"
+                        className={`ask-copy${copied ? " copied" : ""}`}
+                        onClick={handleCopyAnswer}
+                      >
+                        {copied ? copy.copiedAnswer : copy.copyAnswer}
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
               ) : (
-                <div className="ask-empty">{copy.noAnswerYet}</div>
+                <div className="ask-chip-group ask-example-group">
+                  <div className="search-section-label">{copy.examplesTitle}</div>
+                  <div className="ask-chip-list">
+                    {askExamples.map((example) => (
+                      <button
+                        type="button"
+                        key={example}
+                        className="ask-chip"
+                        onClick={() => {
+                          setAskQuestion(example);
+                          void submitAsk(example);
+                        }}
+                      >
+                        {example}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               )}
             </div>
 
-            {askFollowups.length > 0 ? (
-              <div className="ask-chip-group">
-                <div className="search-section-label">{copy.followupsTitle}</div>
-                <div className="ask-chip-list">
-                  {askFollowups.map((followup) => (
-                    <button
-                      type="button"
-                      key={followup}
-                      className="ask-chip"
-                      onClick={() => {
-                        setAskQuestion(followup);
-                        void submitAsk(followup);
-                      }}
-                    >
-                      {followup}
-                    </button>
-                  ))}
+            <div className="ask-footer">
+              {hasConversation ? (
+                <div className="ask-chip-group ask-example-group">
+                  <div className="search-section-label">{copy.examplesTitle}</div>
+                  <div className="ask-chip-list">
+                    {askExamples.map((example) => (
+                      <button
+                        type="button"
+                        key={`footer-${example}`}
+                        className="ask-chip"
+                        onClick={() => {
+                          setAskQuestion(example);
+                          void submitAsk(example);
+                        }}
+                      >
+                        {example}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ) : null}
+              ) : null}
 
-            {askAnswer ? (
-              <button
-                type="button"
-                className={`ask-copy${copied ? " copied" : ""}`}
-                onClick={handleCopyAnswer}
-              >
-                {copied ? copy.copiedAnswer : copy.copyAnswer}
-              </button>
-            ) : null}
+              <form className="ask-form" onSubmit={handleAskSubmit}>
+                <div className="search-input-row ask-input-row">
+                  <svg viewBox="0 0 24 24" aria-hidden="true" className="icon">
+                    <path d="M21 12a9 9 0 11-4.2-7.56M8 11h8M8 15h5" />
+                  </svg>
+                  <input
+                    ref={askInputRef}
+                    className="search-input"
+                    placeholder={copy.askPlaceholder}
+                    value={askQuestion}
+                    onChange={(event) => setAskQuestion(event.target.value)}
+                    autoFocus
+                  />
+                  <button
+                    type="submit"
+                    className="ask-submit"
+                    disabled={askLoading || askQuestion.trim().length === 0}
+                  >
+                    {copy.askButton}
+                  </button>
+                </div>
+
+                <div className="ask-scope-row">
+                  <button
+                    type="button"
+                    className={`ask-scope${askScope === "page" ? " active" : ""}`}
+                    onClick={() => setAskScope("page")}
+                  >
+                    {copy.pageScope}
+                  </button>
+                  <button
+                    type="button"
+                    className={`ask-scope${askScope === "section" ? " active" : ""}`}
+                    onClick={() => setAskScope("section")}
+                  >
+                    {copy.sectionScope}
+                  </button>
+                  <button
+                    type="button"
+                    className={`ask-scope${askScope === "site" ? " active" : ""}`}
+                    onClick={() => setAskScope("site")}
+                  >
+                    {copy.siteScope}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         )}
       </div>

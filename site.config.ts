@@ -20,7 +20,6 @@ const siteConfig: SiteConfig = defineSiteConfig({
   },
   askAi: {
     defaultScope: "page",
-    recentLimit: 6,
     followupLimit: 3,
     examples: {
       cn: [

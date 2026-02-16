@@ -146,7 +146,6 @@ export default async function DocPage({
     endpoint: askEndpoint,
     timeoutMs,
     defaultScope: askUiConfig?.defaultScope ?? "page",
-    recentLimit: askUiConfig?.recentLimit ?? 6,
     followupLimit: askUiConfig?.followupLimit ?? 3,
     examples,
   };

@@ -50,6 +50,7 @@ type Env = {
   OPENAI_API_KEY: string;
   OPENAI_MODEL: string;
   AI_SEARCH_INSTANCE: string;
+  AI_SEARCH_RERANK_MODEL?: string;
   DOCS_ORIGIN: string;
 };
 
@@ -58,6 +59,7 @@ const MAX_KEYWORD_CANDIDATES = 20;
 const MAX_VECTOR_CANDIDATES = 20;
 const MAX_FINAL_SOURCES = 8;
 const RRF_K = 60;
+const ASK_ENDPOINT_PATHS = new Set(["/v1/ask", "/ask", "/api/ask"]);
 
 let askIndexCache:
   | {
@@ -94,10 +96,26 @@ function toTitleFromPath(pathname: string) {
 function buildCorsHeaders(origin: string) {
   return {
     "Access-Control-Allow-Origin": origin,
-    "Access-Control-Allow-Methods": "POST,OPTIONS",
+    "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
     Vary: "Origin",
   };
+}
+
+function containsCjk(value: string) {
+  return /[\u3400-\u9fff]/.test(value);
+}
+
+function buildCharNgrams(text: string, size: number) {
+  const chars = Array.from(text);
+  if (chars.length <= size) {
+    return [text];
+  }
+  const grams: string[] = [];
+  for (let i = 0; i <= chars.length - size; i += 1) {
+    grams.push(chars.slice(i, i + size).join(""));
+  }
+  return grams;
 }
 
 function tokenizeQuestion(question: string) {
@@ -106,19 +124,35 @@ function tokenizeQuestion(question: string) {
     return [];
   }
 
-  const wordTokens = normalized
-    .split(/[\s,.;:!?()[\]{}]+/g)
+  const rawTokens = normalized
+    .split(/[\s,.;:!?()[\]{}，。！？；：、（）【】《》“”‘’"']+/g)
     .map((token) => token.trim())
-    .filter((token) => token.length >= 2);
+    .filter(Boolean);
+  const wordTokens: string[] = [];
+
+  rawTokens.forEach((token) => {
+    if (containsCjk(token)) {
+      wordTokens.push(...buildCharNgrams(token, 2));
+      if (token.length <= 12) {
+        wordTokens.push(...buildCharNgrams(token, 3));
+      }
+      return;
+    }
+    if (token.length >= 2) {
+      wordTokens.push(token);
+    }
+  });
 
   if (wordTokens.length > 0) {
     return Array.from(new Set(wordTokens));
   }
 
-  const chars = Array.from(normalized.replace(/\s+/g, ""));
+  const compact = normalized.replace(/\s+/g, "");
+  const chars = Array.from(compact);
   if (chars.length <= 2) {
-    return [normalized];
+    return compact ? [compact] : [];
   }
+
   const grams: string[] = [];
   for (let i = 0; i < chars.length - 1; i += 1) {
     grams.push(chars.slice(i, i + 2).join(""));
@@ -301,16 +335,34 @@ async function vectorRecall(
   routeToSection: Map<string, string>
 ) {
   const autorag = env.AI.autorag(env.AI_SEARCH_INSTANCE);
-  const response = await autorag.search({
+  const baseOptions = {
     query: payload.question,
     max_num_results: MAX_VECTOR_CANDIDATES,
     ranking_options: {
       score_threshold: 0.05,
     },
-    reranking: {
-      enabled: true,
-    },
-  });
+  };
+  const rerankModel = String(env.AI_SEARCH_RERANK_MODEL ?? "").trim();
+  let response: any;
+
+  try {
+    response = await autorag.search(
+      rerankModel
+        ? {
+            ...baseOptions,
+            reranking: {
+              enabled: true,
+              model: rerankModel,
+            },
+          }
+        : baseOptions
+    );
+  } catch (primaryError) {
+    if (!rerankModel) {
+      throw primaryError;
+    }
+    response = await autorag.search(baseOptions);
+  }
 
   const records = Array.isArray(response?.data)
     ? response.data
@@ -490,13 +542,9 @@ async function streamChatCompletion(
 ) {
   const { systemMessage, userMessage } = buildPrompt(payload, sources);
   const baseUrl = env.OPENAI_API_HOST.replace(/\/+$/, "");
-  const response = await fetch(`${baseUrl}/chat/completions`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${env.OPENAI_API_KEY}`,
-    },
-    body: JSON.stringify({
+  const url = `${baseUrl}/chat/completions`;
+  const requestVariants = [
+    {
       model: env.OPENAI_MODEL,
       stream: true,
       stream_options: {
@@ -507,14 +555,40 @@ async function streamChatCompletion(
         { role: "system", content: systemMessage },
         { role: "user", content: userMessage },
       ],
-    }),
-  });
+    },
+    {
+      model: env.OPENAI_MODEL,
+      stream: true,
+      messages: [
+        { role: "system", content: systemMessage },
+        { role: "user", content: userMessage },
+      ],
+    },
+  ];
 
-  if (!response.ok || !response.body) {
-    const message = await response.text().catch(() => "");
-    throw new Error(
-      message || `Chat completion request failed with ${response.status}.`
-    );
+  let response: Response | null = null;
+  let lastErrorMessage = "";
+  for (const body of requestVariants) {
+    const candidate = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${env.OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify(body),
+    });
+    if (candidate.ok && candidate.body) {
+      response = candidate;
+      break;
+    }
+    lastErrorMessage = await candidate.text().catch(() => "");
+    if (!lastErrorMessage) {
+      lastErrorMessage = `Chat completion request failed with ${candidate.status}.`;
+    }
+  }
+
+  if (!response || !response.body) {
+    throw new Error(lastErrorMessage || "Chat completion request failed.");
   }
 
   const reader = response.body.getReader();
@@ -642,9 +716,31 @@ function jsonResponse(
   });
 }
 
+function normalizeEndpointPath(pathname: string) {
+  if (!pathname) {
+    return "/";
+  }
+  const cleaned = pathname.replace(/\/+$/, "");
+  return cleaned || "/";
+}
+
+function healthResponse(corsHeaders: Record<string, string>) {
+  return jsonResponse(
+    {
+      status: "ok",
+      service: "typematter-ask-ai",
+      endpoints: Array.from(ASK_ENDPOINT_PATHS),
+    },
+    200,
+    corsHeaders
+  );
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const corsHeaders = buildCorsHeaders(env.DOCS_ORIGIN);
+    const url = new URL(request.url);
+    const endpointPath = normalizeEndpointPath(url.pathname);
 
     if (request.method === "OPTIONS") {
       return new Response(null, {
@@ -653,9 +749,19 @@ export default {
       });
     }
 
-    const url = new URL(request.url);
-    if (request.method !== "POST" || url.pathname !== "/v1/ask") {
-      return jsonResponse({ error: "Not Found" }, 404, corsHeaders);
+    if (request.method === "GET" && (endpointPath === "/" || endpointPath === "/health")) {
+      return healthResponse(corsHeaders);
+    }
+
+    if (request.method !== "POST" || !ASK_ENDPOINT_PATHS.has(endpointPath)) {
+      return jsonResponse(
+        {
+          error: "Not Found",
+          message: "Use POST /v1/ask (or /ask, /api/ask).",
+        },
+        404,
+        corsHeaders
+      );
     }
 
     let payload: AskRequest;

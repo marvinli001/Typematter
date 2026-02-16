@@ -4,7 +4,8 @@ Cloudflare Worker endpoint for Typematter `Ask AI` tab.
 
 ## 功能
 
-- 提供 `POST /v1/ask` SSE 接口。
+- 提供 `POST /v1/ask` SSE 接口（兼容 `POST /ask`、`POST /api/ask`）。
+- 提供健康检查：`GET /` 或 `GET /health`。
 - 混合召回流程：
   - 关键词召回：`/typematter/ask-index.json`
   - 向量召回：Cloudflare AI Search（`env.AI.autorag(...).search`）
@@ -50,6 +51,7 @@ Cloudflare Worker endpoint for Typematter `Ask AI` tab.
   - `OPENAI_API_HOST=https://api.vistru.cn/v1`
   - `OPENAI_MODEL=gpt-oss-120b`（或你的模型）
   - `AI_SEARCH_INSTANCE=<你的 AI Search 实例名>`
+  - `AI_SEARCH_RERANK_MODEL=@cf/baai/bge-reranker-base`（可选）
   - `DOCS_ORIGIN=https://<你的文档域名>`
 - 密钥（Secrets）：
   - `OPENAI_API_KEY=<你的 OpenAI Key>`
@@ -58,6 +60,7 @@ Cloudflare Worker endpoint for Typematter `Ask AI` tab.
 
 - `DOCS_ORIGIN` 必须和你的文档站点 origin 一致（用于 CORS 与拉取 ask-index）。
 - `OPENAI_API_HOST` 需包含 `/v1`，因为代码会请求 `${OPENAI_API_HOST}/chat/completions`。
+- `AI_SEARCH_RERANK_MODEL` 不填也可运行；若填错会自动回退到无 rerank 检索。
 
 ### 4) 部署并获取 Worker 域名
 
@@ -121,6 +124,15 @@ curl -N https://<worker-domain>/v1/ask \
 ```
 
 预期可看到 `event: sources` 先出现，再出现 `event: delta`。
+
+### 2.1) 检查健康状态（可选）
+
+```bash
+curl -I https://<worker-domain>/
+curl -I https://<worker-domain>/health
+```
+
+预期返回 `200`，并带有 JSON 健康信息。
 
 ## 常见问题
 

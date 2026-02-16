@@ -47,7 +47,6 @@ type DocsShellProps = {
     endpoint?: string;
     timeoutMs: number;
     defaultScope: "page" | "section" | "site";
-    recentLimit: number;
     followupLimit: number;
     examples: string[];
   };

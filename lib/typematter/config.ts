@@ -38,7 +38,6 @@ export type RepoConfig = {
 
 export type AskAiUiConfig = {
   defaultScope?: "page" | "section" | "site";
-  recentLimit?: number;
   followupLimit?: number;
   examples?: Record<string, string[]>;
 };
