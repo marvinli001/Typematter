@@ -357,6 +357,7 @@ export default function SearchModal({ items, askAi, askContext }: SearchModalPro
   const askEndpoint = askAi?.endpoint ? resolveAskEndpoint(askAi.endpoint) : "";
   const hasConversation =
     lastAskedQuestion.length > 0 || askLoading || askAnswer.length > 0 || Boolean(askError);
+  const isAskExpanded = askEnabled && tab === "ask" && hasConversation;
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -774,7 +775,7 @@ export default function SearchModal({ items, askAi, askContext }: SearchModalPro
           setOpen(false);
         }}
       />
-      <div className="search-panel">
+      <div className={`search-panel${isAskExpanded ? " is-ask-expanded" : ""}`}>
         {askEnabled ? (
           <div className="search-tabs-row">
             <div className="search-tabs" role="tablist" aria-label="Search modes">
