@@ -60,6 +60,7 @@ const MAX_VECTOR_CANDIDATES = 20;
 const MAX_FINAL_SOURCES = 8;
 const RRF_K = 60;
 const ASK_ENDPOINT_PATHS = new Set(["/v1/ask", "/ask", "/api/ask"]);
+const DEFAULT_DOCS_ORIGIN = "https://docs.example.com";
 
 let askIndexCache:
   | {
@@ -100,6 +101,92 @@ function buildCorsHeaders(origin: string) {
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
     Vary: "Origin",
   };
+}
+
+function normalizeOrigin(raw: string | null | undefined) {
+  if (!raw) {
+    return "";
+  }
+  try {
+    const parsed = new URL(raw.trim());
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      return "";
+    }
+    return parsed.origin;
+  } catch {
+    return "";
+  }
+}
+
+function parseConfiguredOrigins(raw: string | undefined) {
+  if (!raw) {
+    return [];
+  }
+  const parts = raw
+    .split(/[,\s]+/g)
+    .map((item) => normalizeOrigin(item))
+    .filter(Boolean);
+  return Array.from(new Set(parts));
+}
+
+function stripWwwHost(origin: string) {
+  try {
+    return new URL(origin).host.toLowerCase().replace(/^www\./, "");
+  } catch {
+    return "";
+  }
+}
+
+function sameSiteHost(left: string, right: string) {
+  const leftHost = stripWwwHost(left);
+  const rightHost = stripWwwHost(right);
+  return Boolean(leftHost) && leftHost === rightHost;
+}
+
+function resolveDocsOrigin(
+  configuredRaw: string | undefined,
+  requestOrigin: string
+) {
+  const configured = parseConfiguredOrigins(configuredRaw).filter(
+    (item) => item !== DEFAULT_DOCS_ORIGIN
+  );
+  if (requestOrigin) {
+    const exact = configured.find((item) => item === requestOrigin);
+    if (exact) {
+      return exact;
+    }
+    const alias = configured.find((item) => sameSiteHost(item, requestOrigin));
+    if (alias) {
+      return requestOrigin;
+    }
+  }
+  if (configured.length > 0) {
+    return configured[0];
+  }
+  if (requestOrigin) {
+    return requestOrigin;
+  }
+  return DEFAULT_DOCS_ORIGIN;
+}
+
+function resolveCorsOrigin(
+  configuredRaw: string | undefined,
+  requestOrigin: string,
+  docsOrigin: string
+) {
+  if (!requestOrigin) {
+    return docsOrigin;
+  }
+  const configured = parseConfiguredOrigins(configuredRaw).filter(
+    (item) => item !== DEFAULT_DOCS_ORIGIN
+  );
+  if (configured.length === 0) {
+    return requestOrigin;
+  }
+  const allowed = configured.some(
+    (item) => item === requestOrigin || sameSiteHost(item, requestOrigin)
+  );
+  return allowed ? requestOrigin : docsOrigin;
 }
 
 function containsCjk(value: string) {
@@ -724,12 +811,22 @@ function normalizeEndpointPath(pathname: string) {
   return cleaned || "/";
 }
 
-function healthResponse(corsHeaders: Record<string, string>) {
+function healthResponse(
+  corsHeaders: Record<string, string>,
+  details: {
+    docsOrigin: string;
+    corsOrigin: string;
+    configuredOrigins: string[];
+  }
+) {
   return jsonResponse(
     {
       status: "ok",
       service: "typematter-ask-ai",
       endpoints: Array.from(ASK_ENDPOINT_PATHS),
+      docsOrigin: details.docsOrigin,
+      corsOrigin: details.corsOrigin,
+      configuredOrigins: details.configuredOrigins,
     },
     200,
     corsHeaders
@@ -738,7 +835,15 @@ function healthResponse(corsHeaders: Record<string, string>) {
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
-    const corsHeaders = buildCorsHeaders(env.DOCS_ORIGIN);
+    const requestOrigin = normalizeOrigin(request.headers.get("Origin"));
+    const docsOrigin = resolveDocsOrigin(env.DOCS_ORIGIN, requestOrigin);
+    const corsOrigin = resolveCorsOrigin(env.DOCS_ORIGIN, requestOrigin, docsOrigin);
+    const configuredOrigins = parseConfiguredOrigins(env.DOCS_ORIGIN);
+    const corsHeaders = buildCorsHeaders(corsOrigin);
+    const runtimeEnv: Env = {
+      ...env,
+      DOCS_ORIGIN: docsOrigin,
+    };
     const url = new URL(request.url);
     const endpointPath = normalizeEndpointPath(url.pathname);
 
@@ -750,7 +855,11 @@ export default {
     }
 
     if (request.method === "GET" && (endpointPath === "/" || endpointPath === "/health")) {
-      return healthResponse(corsHeaders);
+      return healthResponse(corsHeaders, {
+        docsOrigin,
+        corsOrigin,
+        configuredOrigins,
+      });
     }
 
     if (request.method !== "POST" || !ASK_ENDPOINT_PATHS.has(endpointPath)) {
@@ -788,7 +897,7 @@ export default {
 
     void (async () => {
       try {
-        const sources = await retrieveSources(env, payload);
+        const sources = await retrieveSources(runtimeEnv, payload);
         await writeEvent(
           "sources",
           sources.map((source) => ({
@@ -812,7 +921,7 @@ export default {
           return;
         }
 
-        const usage = await streamChatCompletion(env, payload, sources, writeEvent);
+        const usage = await streamChatCompletion(runtimeEnv, payload, sources, writeEvent);
         await writeEvent("done", {
           followups: buildFollowups(payload.language),
           usage,

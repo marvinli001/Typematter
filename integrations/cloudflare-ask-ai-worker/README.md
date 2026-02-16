@@ -37,11 +37,12 @@ Cloudflare Worker endpoint for Typematter `Ask AI` tab.
 
 - 构建命令：留空（可选），或 `echo "skip build"`
 - 部署命令：`npx wrangler deploy --config integrations/cloudflare-ask-ai-worker/wrangler.toml`
+- 若你在 Dashboard 中维护 Variables，建议使用：`npx wrangler deploy --keep-vars --config integrations/cloudflare-ask-ai-worker/wrangler.toml`
 
 如果你在高级设置里把 Root directory 设为 `integrations/cloudflare-ask-ai-worker`，则可改为：
 
 - 构建命令：留空（可选）
-- 部署命令：`npx wrangler deploy`
+- 部署命令：`npx wrangler deploy --keep-vars`
 
 ### 3) 配置环境变量与密钥
 
@@ -140,5 +141,8 @@ curl -I https://<worker-domain>/health
   - 检查 `NEXT_PUBLIC_TYPEMATTER_ASK_AI_ENDPOINT` 是否已注入到前端构建环境。
 - Worker 返回 CORS 错误：
   - 检查 `DOCS_ORIGIN` 是否与实际站点 origin 完全一致（协议、域名都要一致）。
+- 前端显示 `Failed to fetch`，且 Worker 响应头 `Access-Control-Allow-Origin` 是 `https://docs.example.com`：
+  - 说明部署时占位变量覆盖了线上真实变量。
+  - 修复方式：使用 `--keep-vars` 重新部署，或在 Dashboard 里重新设置 `DOCS_ORIGIN` / `AI_SEARCH_INSTANCE` / `OPENAI_API_HOST` / `OPENAI_MODEL`。
 - Worker 提示找不到 ask-index：
   - 先运行 `npm run typematter -- export-registry`，确保 `public/typematter/ask-index.json` 已生成并随站点发布。
