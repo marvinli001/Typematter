@@ -3,10 +3,24 @@ title: Changelog
 order: 1
 section: Changelog
 status: experimental
-version: 0.2.0-beta
+version: 0.3.0-rc
 ---
 
 此页面记录文档系统的结构与规范变更。
+
+## 0.3.0-rc
+
+- 引入新的 `typematter` 核心库（配置、插件架构、content registry、search index、验证系统），统一构建期扩展能力
+- 完成插件与构建类型体系（logger/build context/content page/validation report），并将 `ValidationReport` 重命名为 `PluginValidationReport` 以统一语义
+- 新增并整合文档质量校验规则：frontmatter、重复项、空目录、内部链接与锚点、导航配置、孤儿页面
+- CLI 能力补齐：`dev`、`build`、`validate`、`export-registry`；并将校验逻辑拆分到独立脚本，提升可维护性
+- 站点与导航配置增强类型约束（含 `siteConfig` 注解），并简化 `DocsShell` 中仓库配置读取路径
+- 修复 `navConfig` 仓库 URL 访问、`next-env.d.ts` 导入路径等兼容性问题；升级 Next.js 到 `16.1.6`，并加入 PWA Service Worker
+- 新增 Ask AI 全链路：DocsShell 接入 Ask 配置与上下文、Cloudflare Worker `POST /v1/ask`、ask-index 构建输出与混合召回
+- 新增 Cloudflare AI Search 相关静态产物：自动生成 `robots.txt` 与 `sitemap.xml`
+- Ask AI 交互持续完善：错误详情展开/复制、移除 recentLimit 并改为助手式会话 UI、回答支持 Markdown 渲染（ReactMarkdown）
+- 强化 Worker 与部署体验：CORS 与健康检查返回更多 origin 诊断信息，新增环境变量示例文件并更新本地/部署文档
+- 优化 Ask 模式搜索浮窗的自适应与扩展行为（提问后自动扩高），改善桌面与移动端可读性
 
 ## 0.2.0-beta
 
@@ -34,3 +48,4 @@ version: 0.2.0-beta
 - 文档组件：Callout（Tip/Info/Warning/Deprecated）、DiffBlock、Columns、CodeBlock
 - 构建期文档校验与配置体系
 - 轻量语法高亮（rehype-highlight）
+

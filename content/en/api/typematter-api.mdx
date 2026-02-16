@@ -3,7 +3,7 @@ title: Typematter API
 order: 0
 section: API
 status: experimental
-version: 0.2.0-beta
+version: 0.3.0-rc
 ---
 
 Typematter aligns with common doc-system capabilities: a unified CLI, declarative config, plugins/hooks, built-in MDX components, and build-time navigation + search indexing. The goal is to keep content and runtime rendering decoupled while remaining static and cache-friendly.
@@ -121,3 +121,4 @@ Runtime reads the registry only and must not rescan the filesystem.
 ## Build validation
 
 Validation is first-class: broken links, duplicate titles, orphan pages, invalid frontmatter, empty directories, and more. Rules support `error | warn | off` and can be extended by plugins.
+

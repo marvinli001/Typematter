@@ -1,6 +1,6 @@
 {
   "name": "typematter",
-  "version": "0.2.0-beta",
+  "version": "0.3.0-rc",
   "private": true,
   "bin": {
     "typematter": "bin/typematter.js"
@@ -41,3 +41,4 @@
     "typescript": "^5.0.0"
   }
 }
+

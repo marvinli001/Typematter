@@ -3,7 +3,7 @@ title: Typematter API
 order: 0
 section: API
 status: experimental
-version: 0.2.0-beta
+version: 0.3.0-rc
 ---
 
 Typematter 的 API 设计对齐主流文档系统的共性能力：统一 CLI、声明式配置、插件/钩子机制、内置 MDX 组件库，以及编译期生成导航与搜索索引。目标是保持内容与渲染解耦，同时保证构建可缓存、可回滚、可扩展。
@@ -121,3 +121,4 @@ type ContentRegistry = {
 ## 构建验证
 
 验证是第一等公民，内置规则包括：断链、重复标题、孤立页面、无效 frontmatter、空目录等。规则支持 `error | warn | off` 并允许插件扩展。
+

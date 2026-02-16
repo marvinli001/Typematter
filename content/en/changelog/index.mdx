@@ -3,10 +3,24 @@ title: Changelog
 order: 1
 section: Changelog
 status: experimental
-version: 0.2.0-beta
+version: 0.3.0-rc
 ---
 
 This page tracks changes to the docs system structure and conventions.
+
+## 0.3.0-rc
+
+- Introduced the new `typematter` core library (configuration, plugin architecture, content registry, search indexing, validation), consolidating build-time extensibility
+- Completed the plugin/build typing model (logger, build context, content page, validation report) and renamed `ValidationReport` to `PluginValidationReport` for consistency
+- Added and integrated doc-quality validation rules: frontmatter, duplicates, empty directories, internal links/anchors, nav config, and orphan pages
+- Expanded CLI capabilities: `dev`, `build`, `validate`, `export-registry`; and moved validation logic into a dedicated script for maintainability
+- Strengthened typing in site/nav configuration (including explicit `siteConfig` annotation), and simplified repository config access in `DocsShell`
+- Fixed repository URL access in nav config and import path issues in `next-env.d.ts`; upgraded Next.js to `16.1.6` and added PWA Service Worker support
+- Added the full Ask AI path: DocsShell Ask config/context, Cloudflare Worker `POST /v1/ask`, ask-index generation, and hybrid recall flow
+- Added Cloudflare AI Search static artifacts: automatic `robots.txt` and `sitemap.xml` generation
+- Improved Ask AI UX: detailed error expand/copy, removed recentLimit in favor of assistant-style conversation UI, and Markdown answer rendering via ReactMarkdown
+- Improved Worker and deployment operations: richer CORS/health origin diagnostics, plus environment variable template and updated local/deploy docs
+- Enhanced Ask-mode search modal responsiveness and expansion behavior (auto-expand after a question) across desktop and mobile
 
 ## 0.2.0-beta
 
@@ -34,4 +48,5 @@ This page tracks changes to the docs system structure and conventions.
 - Doc components: Callout (Tip/Info/Warning/Deprecated), DiffBlock, Columns, CodeBlock
 - Build-time docs validation and configuration system
 - Lightweight syntax highlighting (rehype-highlight)
+
 
