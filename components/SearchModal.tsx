@@ -3,6 +3,8 @@
 import type { FormEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import type {
   AskDonePayload,
   AskRequest,
@@ -318,6 +320,10 @@ function normalizeSources(sources: AskSource[]) {
       snippet: source.snippet || "",
       score: source.score,
     }));
+}
+
+function isExternalHref(href: string) {
+  return /^https?:\/\//i.test(href);
 }
 
 export default function SearchModal({ items, askAi, askContext }: SearchModalProps) {
@@ -913,7 +919,23 @@ export default function SearchModal({ items, askAi, askContext }: SearchModalPro
                         ) : null}
                       </div>
                     ) : askAnswer ? (
-                      <div className="ask-answer-text">{askAnswer}</div>
+                      <div className="ask-answer-text">
+                        <ReactMarkdown
+                          remarkPlugins={[remarkGfm]}
+                          components={{
+                            a: ({ href, ...props }) => (
+                              <a
+                                {...props}
+                                href={href}
+                                target={href && isExternalHref(href) ? "_blank" : undefined}
+                                rel={href && isExternalHref(href) ? "noreferrer" : undefined}
+                              />
+                            ),
+                          }}
+                        >
+                          {askAnswer}
+                        </ReactMarkdown>
+                      </div>
                     ) : askLoading ? (
                       <div className="ask-thinking">{copy.thinking}</div>
                     ) : (

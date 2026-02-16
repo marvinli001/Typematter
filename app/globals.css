@@ -789,10 +789,89 @@ code {
 }
 
 .ask-answer-text {
-  white-space: pre-wrap;
   font-size: 0.88rem;
   color: var(--text);
   line-height: 1.58;
+}
+
+.ask-answer-text > :first-child {
+  margin-top: 0;
+}
+
+.ask-answer-text > :last-child {
+  margin-bottom: 0;
+}
+
+.ask-answer-text :where(p, ul, ol, pre, blockquote, table, h1, h2, h3, h4) {
+  margin: 0.6rem 0;
+}
+
+.ask-answer-text :where(h1, h2, h3, h4) {
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.ask-answer-text :where(ul, ol) {
+  padding-left: 1.2rem;
+}
+
+.ask-answer-text li + li {
+  margin-top: 0.22rem;
+}
+
+.ask-answer-text a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.12em;
+}
+
+.ask-answer-text :not(pre) > code {
+  font-size: 0.82rem;
+  border-radius: 0.35rem;
+  border: 1px solid var(--border);
+  background: var(--surface-muted);
+  padding: 0.05rem 0.32rem;
+}
+
+.ask-answer-text pre {
+  border: 1px solid var(--border);
+  border-radius: 0.65rem;
+  background: var(--surface-muted);
+  padding: 0.6rem 0.68rem;
+  overflow-x: auto;
+}
+
+.ask-answer-text pre code {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.ask-answer-text blockquote {
+  margin-left: 0;
+  border-left: 3px solid var(--border-strong);
+  color: var(--text-soft);
+  padding: 0.15rem 0 0.15rem 0.65rem;
+}
+
+.ask-answer-text table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.ask-answer-text th,
+.ask-answer-text td {
+  border: 1px solid var(--border);
+  padding: 0.3rem 0.4rem;
+  text-align: left;
+}
+
+.ask-answer-text th {
+  background: var(--surface-muted);
 }
 
 .ask-empty {
