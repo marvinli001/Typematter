@@ -37,12 +37,12 @@ Cloudflare Worker endpoint for Typematter `Ask AI` tab.
 
 - 构建命令：留空（可选），或 `echo "skip build"`
 - 部署命令：`npx wrangler deploy --config integrations/cloudflare-ask-ai-worker/wrangler.toml`
-- 若你在 Dashboard 中维护 Variables，建议使用：`npx wrangler deploy --keep-vars --config integrations/cloudflare-ask-ai-worker/wrangler.toml`
+- 当前 `wrangler.toml` 已启用 `keep_vars = true`，会保留 Dashboard 中维护的 Variables。
 
 如果你在高级设置里把 Root directory 设为 `integrations/cloudflare-ask-ai-worker`，则可改为：
 
 - 构建命令：留空（可选）
-- 部署命令：`npx wrangler deploy --keep-vars`
+- 部署命令：`npx wrangler deploy`
 
 ### 3) 配置环境变量与密钥
 
@@ -77,13 +77,15 @@ Cloudflare Worker endpoint for Typematter `Ask AI` tab.
    - `cd integrations/cloudflare-ask-ai-worker`
 3. 配置密钥：
    - `wrangler secret put OPENAI_API_KEY`
-4. 修改 `wrangler.toml` 中变量：
-   - `DOCS_ORIGIN`
-   - `OPENAI_API_HOST`
-   - `OPENAI_MODEL`
-   - `AI_SEARCH_INSTANCE`
+4. 本地创建环境文件（不要把真实值写进 `wrangler.toml`）：
+   - 复制 `.dev.vars.example` 为 `.dev.vars`
+   - 按需填写：
+     - `DOCS_ORIGIN`
+     - `OPENAI_API_HOST`
+     - `OPENAI_MODEL`
+     - `AI_SEARCH_INSTANCE`
 5. 部署：
-   - `wrangler deploy`
+   - `wrangler deploy --keep-vars`
 
 ## Typematter 站点侧配置
 
@@ -144,5 +146,8 @@ curl -I https://<worker-domain>/health
 - 前端显示 `Failed to fetch`，且 Worker 响应头 `Access-Control-Allow-Origin` 是 `https://docs.example.com`：
   - 说明部署时占位变量覆盖了线上真实变量。
   - 修复方式：使用 `--keep-vars` 重新部署，或在 Dashboard 里重新设置 `DOCS_ORIGIN` / `AI_SEARCH_INSTANCE` / `OPENAI_API_HOST` / `OPENAI_MODEL`。
+- 明明配置了自定义 API Host，仍返回 OpenAI `invalid_api_key`：
+  - 先检查 `/health` 返回的 `docsOrigin/corsOrigin/configuredOrigins` 是否仍是占位值。
+  - 再确认 Worker Variables 中 `OPENAI_API_HOST` 已是你的网关地址，且 `OPENAI_API_KEY` 与该网关匹配。
 - Worker 提示找不到 ask-index：
   - 先运行 `npm run typematter -- export-registry`，确保 `public/typematter/ask-index.json` 已生成并随站点发布。

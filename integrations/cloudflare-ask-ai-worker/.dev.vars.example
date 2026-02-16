@@ -1,0 +1,6 @@
+DOCS_ORIGIN=https://www.orio.sd
+OPENAI_API_HOST=https://api.vistru.cn/v1
+OPENAI_MODEL=gpt-oss-120b
+AI_SEARCH_INSTANCE=blue-bird-5714
+AI_SEARCH_RERANK_MODEL=@cf/baai/bge-reranker-base
+OPENAI_API_KEY=sk-xxxx
