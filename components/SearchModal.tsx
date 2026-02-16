@@ -63,10 +63,20 @@ type UiCopy = {
   copiedAnswer: string;
   askError: string;
   askTimeout: string;
+  showErrorDetails: string;
+  hideErrorDetails: string;
+  copyErrorDetails: string;
+  copiedErrorDetails: string;
 };
 
 const RECENT_KEY_PREFIX = "typematter-ask-recent";
 const COPY_FEEDBACK_MS = 1200;
+const ERROR_SUMMARY_MAX_LENGTH = 140;
+
+type AskUiError = {
+  summary: string;
+  detail: string;
+};
 
 const EN_COPY: UiCopy = {
   searchPlaceholder: "Search documentation...",
@@ -89,6 +99,10 @@ const EN_COPY: UiCopy = {
   copiedAnswer: "Copied",
   askError: "Ask AI failed. Please try again.",
   askTimeout: "Ask AI request timed out.",
+  showErrorDetails: "Show details",
+  hideErrorDetails: "Hide details",
+  copyErrorDetails: "Copy full error",
+  copiedErrorDetails: "Copied",
 };
 
 const CN_COPY: UiCopy = {
@@ -112,6 +126,10 @@ const CN_COPY: UiCopy = {
   copiedAnswer: "已复制",
   askError: "Ask AI 调用失败，请稍后重试。",
   askTimeout: "Ask AI 请求超时。",
+  showErrorDetails: "展开详情",
+  hideErrorDetails: "收起详情",
+  copyErrorDetails: "复制完整报错",
+  copiedErrorDetails: "已复制",
 };
 
 function isModifiedKey(event: KeyboardEvent) {
@@ -202,6 +220,17 @@ function safeParseJson<T>(value: string) {
   } catch {
     return null;
   }
+}
+
+function toErrorSummary(message: string, fallback: string) {
+  const normalized = message.replace(/\s+/g, " ").trim();
+  if (!normalized) {
+    return fallback;
+  }
+  if (normalized.length <= ERROR_SUMMARY_MAX_LENGTH) {
+    return normalized;
+  }
+  return `${normalized.slice(0, ERROR_SUMMARY_MAX_LENGTH - 3)}...`;
 }
 
 function processSseChunk(
@@ -295,13 +324,16 @@ export default function SearchModal({ items, askAi, askContext }: SearchModalPro
   const [askAnswer, setAskAnswer] = useState("");
   const [askSources, setAskSources] = useState<AskSource[]>([]);
   const [askFollowups, setAskFollowups] = useState<string[]>([]);
-  const [askError, setAskError] = useState("");
+  const [askError, setAskError] = useState<AskUiError | null>(null);
+  const [askErrorExpanded, setAskErrorExpanded] = useState(false);
+  const [askErrorCopied, setAskErrorCopied] = useState(false);
   const [copied, setCopied] = useState(false);
   const [recentQuestions, setRecentQuestions] = useState<string[]>([]);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const askInputRef = useRef<HTMLInputElement | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const copyTimerRef = useRef<number | null>(null);
+  const errorCopyTimerRef = useRef<number | null>(null);
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -346,6 +378,30 @@ export default function SearchModal({ items, askAi, askContext }: SearchModalPro
           "What common mistakes should I avoid?",
         ];
   }, [askAi?.examples, askContext?.language]);
+
+  function applyAskError(
+    message: string,
+    debugContext?: Record<string, unknown>
+  ) {
+    const detailSections = [message || copy.askError];
+    if (debugContext) {
+      detailSections.push(
+        "",
+        "Debug context:",
+        JSON.stringify(debugContext, null, 2)
+      );
+    }
+    setAskError({
+      summary: toErrorSummary(message || copy.askError, copy.askError),
+      detail: detailSections.join("\n"),
+    });
+    setAskErrorExpanded(false);
+    setAskErrorCopied(false);
+    if (errorCopyTimerRef.current) {
+      window.clearTimeout(errorCopyTimerRef.current);
+      errorCopyTimerRef.current = null;
+    }
+  }
 
   useEffect(() => {
     if (!askEnabled || !askContext?.language) {
@@ -392,24 +448,21 @@ export default function SearchModal({ items, askAi, askContext }: SearchModalPro
   }, [open]);
 
   useEffect(() => {
-    const triggers = Array.from(
-      document.querySelectorAll<HTMLElement>("[data-search-trigger]")
-    );
-    const openModal = (event: Event) => {
+    const openFromEvent = (event: Event) => {
+      const target = event.target as Element | null;
+      if (!target?.closest("[data-search-trigger]")) {
+        return;
+      }
       event.preventDefault();
       setOpen(true);
     };
 
-    triggers.forEach((element) => {
-      element.addEventListener("click", openModal);
-      element.addEventListener("focus", openModal);
-    });
+    document.addEventListener("click", openFromEvent);
+    document.addEventListener("focusin", openFromEvent);
 
     return () => {
-      triggers.forEach((element) => {
-        element.removeEventListener("click", openModal);
-        element.removeEventListener("focus", openModal);
-      });
+      document.removeEventListener("click", openFromEvent);
+      document.removeEventListener("focusin", openFromEvent);
     };
   }, []);
 
@@ -429,7 +482,9 @@ export default function SearchModal({ items, askAi, askContext }: SearchModalPro
     setAskAnswer("");
     setAskSources([]);
     setAskFollowups([]);
-    setAskError("");
+    setAskError(null);
+    setAskErrorExpanded(false);
+    setAskErrorCopied(false);
     setCopied(false);
     document.body.classList.add("search-open");
     const focusInput = () => {
@@ -520,13 +575,16 @@ export default function SearchModal({ items, askAi, askContext }: SearchModalPro
       abortRef.current?.abort();
       setOpen(false);
     }
-  }, [pathname, searchParams?.toString(), open]);
+  }, [pathname, searchParams?.toString()]);
 
   useEffect(() => {
     return () => {
       abortRef.current?.abort();
       if (copyTimerRef.current) {
         window.clearTimeout(copyTimerRef.current);
+      }
+      if (errorCopyTimerRef.current) {
+        window.clearTimeout(errorCopyTimerRef.current);
       }
     };
   }, []);
@@ -567,7 +625,9 @@ export default function SearchModal({ items, askAi, askContext }: SearchModalPro
 
     setAskQuestion(question);
     setAskLoading(true);
-    setAskError("");
+    setAskError(null);
+    setAskErrorExpanded(false);
+    setAskErrorCopied(false);
     setAskAnswer("");
     setAskSources([]);
     setAskFollowups([]);
@@ -582,6 +642,11 @@ export default function SearchModal({ items, askAi, askContext }: SearchModalPro
       siteContext: {
         title: askContext.title,
       },
+    };
+    const debugContext = {
+      endpoint: askEndpoint,
+      request: payload,
+      timestamp: new Date().toISOString(),
     };
 
     const controller = new AbortController();
@@ -602,7 +667,10 @@ export default function SearchModal({ items, askAi, askContext }: SearchModalPro
 
       if (!response.ok) {
         const errorText = await response.text().catch(() => "");
-        throw new Error(errorText || `${copy.askError} (${response.status})`);
+        const responseMessage = errorText || copy.askError;
+        throw new Error(
+          `HTTP ${response.status} ${response.statusText}\n${responseMessage}`
+        );
       }
 
       if (!response.body) {
@@ -633,7 +701,7 @@ export default function SearchModal({ items, askAi, askContext }: SearchModalPro
           onDelta: (delta) => setAskAnswer((prev) => prev + delta),
           onDone: (donePayload) =>
             setAskFollowups((donePayload.followups ?? []).slice(0, followupLimit)),
-          onError: (message) => setAskError(message || copy.askError),
+          onError: (message) => applyAskError(message || copy.askError, debugContext),
         });
       }
 
@@ -643,16 +711,16 @@ export default function SearchModal({ items, askAi, askContext }: SearchModalPro
           onDelta: (delta) => setAskAnswer((prev) => prev + delta),
           onDone: (donePayload) =>
             setAskFollowups((donePayload.followups ?? []).slice(0, followupLimit)),
-          onError: (message) => setAskError(message || copy.askError),
+          onError: (message) => applyAskError(message || copy.askError, debugContext),
         });
       }
     } catch (error) {
       if (controller.signal.aborted) {
-        setAskError(copy.askTimeout);
+        applyAskError(copy.askTimeout, debugContext);
       } else {
         const message =
           error instanceof Error && error.message ? error.message : copy.askError;
-        setAskError(message);
+        applyAskError(message, debugContext);
       }
     } finally {
       window.clearTimeout(timeout);
@@ -692,6 +760,25 @@ export default function SearchModal({ items, askAi, askContext }: SearchModalPro
       }, COPY_FEEDBACK_MS);
     } catch {
       setCopied(false);
+    }
+  }
+
+  async function handleCopyErrorDetail() {
+    if (!askError?.detail) {
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(askError.detail);
+      setAskErrorCopied(true);
+      if (errorCopyTimerRef.current) {
+        window.clearTimeout(errorCopyTimerRef.current);
+      }
+      errorCopyTimerRef.current = window.setTimeout(() => {
+        setAskErrorCopied(false);
+      }, COPY_FEEDBACK_MS);
+    } catch {
+      setAskErrorCopied(false);
     }
   }
 
@@ -905,7 +992,32 @@ export default function SearchModal({ items, askAi, askContext }: SearchModalPro
 
             <div className="ask-answer">
               {askError ? (
-                <div className="ask-error">{askError}</div>
+                <div className="ask-error-panel">
+                  <div className="ask-error">{askError.summary}</div>
+                  <div className="ask-error-actions">
+                    <button
+                      type="button"
+                      className="ask-error-action"
+                      onClick={() => setAskErrorExpanded((prev) => !prev)}
+                    >
+                      {askErrorExpanded
+                        ? copy.hideErrorDetails
+                        : copy.showErrorDetails}
+                    </button>
+                    <button
+                      type="button"
+                      className={`ask-error-action${askErrorCopied ? " copied" : ""}`}
+                      onClick={handleCopyErrorDetail}
+                    >
+                      {askErrorCopied
+                        ? copy.copiedErrorDetails
+                        : copy.copyErrorDetails}
+                    </button>
+                  </div>
+                  {askErrorExpanded ? (
+                    <pre className="ask-error-detail">{askError.detail}</pre>
+                  ) : null}
+                </div>
               ) : askAnswer ? (
                 <div className="ask-answer-text">{askAnswer}</div>
               ) : (
