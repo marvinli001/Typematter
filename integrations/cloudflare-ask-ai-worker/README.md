@@ -85,6 +85,7 @@ Cloudflare Worker endpoint for Typematter `Ask AI` tab.
 
 在文档站点构建环境设置：
 
+- `TYPEMATTER_SITE_URL=https://<docs-origin>`（用于自动生成 `robots.txt` 与 `sitemap.xml`）
 - `NEXT_PUBLIC_TYPEMATTER_ASK_AI_ENDPOINT=https://<worker-domain>`
 - `NEXT_PUBLIC_TYPEMATTER_ASK_AI_TIMEOUT_MS=25000`（可选）
 - `NEXT_PUBLIC_TYPEMATTER_ASK_AI_ENABLED=true`（可选；不填时按 endpoint 自动启用）
@@ -95,6 +96,13 @@ Cloudflare Worker endpoint for Typematter `Ask AI` tab.
 
 ```bash
 curl -I https://<docs-origin>/typematter/ask-index.json
+```
+
+### 1.1) 检查 robots 与 sitemap
+
+```bash
+curl -I https://<docs-origin>/robots.txt
+curl -I https://<docs-origin>/sitemap.xml
 ```
 
 ### 2) 检查 Worker SSE 是否返回

@@ -10,6 +10,7 @@ import remarkDirective from "remark-directive";
 import { visit } from "unist-util-visit";
 import { getAllDocEntries } from "../docs";
 import { getI18nConfig } from "../i18n";
+import siteConfig from "../../site.config";
 import type { AskIndexItem } from "./ask";
 import type { ContentRegistry, RegistryPage } from "./registry";
 import type { SearchIndexItem } from "./search";
@@ -18,6 +19,9 @@ const CACHE_DIR = path.join(process.cwd(), ".typematter");
 const REGISTRY_FILE = "registry.json";
 const SEARCH_INDEX_FILE = "search-index.json";
 const ASK_INDEX_FILE = "ask-index.json";
+const SITEMAP_FILE = "sitemap.xml";
+const ROBOTS_FILE = "robots.txt";
+const PUBLIC_DIR = path.join(process.cwd(), "public");
 const PUBLIC_ASK_INDEX_DIR = path.join(process.cwd(), "public", "typematter");
 const PUBLIC_ASK_INDEX_FILE = "ask-index.json";
 
@@ -68,6 +72,76 @@ function collectComponents(source: string) {
   });
 
   return Array.from(names.values()).sort((a, b) => a.localeCompare(b));
+}
+
+function normalizeSiteUrl(value: string | undefined) {
+  if (!value) {
+    return null;
+  }
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  try {
+    const parsed = new URL(trimmed);
+    return `${parsed.protocol}//${parsed.host}`.replace(/\/+$/, "");
+  } catch {
+    return null;
+  }
+}
+
+function resolveSiteUrl() {
+  return normalizeSiteUrl(
+    siteConfig.siteUrl ??
+      process.env.TYPEMATTER_SITE_URL ??
+      process.env.NEXT_PUBLIC_SITE_URL ??
+      process.env.DOCS_ORIGIN
+  );
+}
+
+function toPublicRouteUrl(siteUrl: string, route: string) {
+  if (route === "/") {
+    return `${siteUrl}/`;
+  }
+  const normalized = route.startsWith("/") ? route : `/${route}`;
+  return `${siteUrl}${normalized}/`;
+}
+
+function buildSitemapXml(registry: ContentRegistry, siteUrl: string) {
+  const seen = new Set<string>();
+  const urls = registry.pages
+    .filter((page) => !page.hidden)
+    .map((page) => toPublicRouteUrl(siteUrl, page.route))
+    .filter((url) => {
+      if (seen.has(url)) {
+        return false;
+      }
+      seen.add(url);
+      return true;
+    });
+
+  const lastmod = registry.meta.generatedAt;
+  const entries = urls
+    .map(
+      (url) =>
+        `  <url>\n    <loc>${url}</loc>\n    <lastmod>${lastmod}</lastmod>\n  </url>`
+    )
+    .join("\n");
+
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${entries}\n</urlset>\n`;
+}
+
+function buildRobotsTxt(siteUrl: string | null) {
+  const lines = ["User-agent: *", "Allow: /", ""];
+  if (siteUrl) {
+    lines.push(`Sitemap: ${siteUrl}/${SITEMAP_FILE}`);
+  } else {
+    lines.push(`# Set TYPEMATTER_SITE_URL (or site.config.ts siteUrl) to emit absolute sitemap URL.`);
+    lines.push(`Sitemap: https://example.com/${SITEMAP_FILE}`);
+  }
+  lines.push("");
+  return lines.join("\n");
 }
 
 function normalizeText(value: string) {
@@ -260,7 +334,36 @@ export function writeRegistryFiles(result: BuildRegistryResult, cacheDir = CACHE
   const publicAskPath = path.join(PUBLIC_ASK_INDEX_DIR, PUBLIC_ASK_INDEX_FILE);
   fs.writeFileSync(publicAskPath, JSON.stringify(result.askIndex, null, 2));
 
-  return { registryPath, searchPath, askPath, publicAskPath };
+  if (!fs.existsSync(PUBLIC_DIR)) {
+    fs.mkdirSync(PUBLIC_DIR, { recursive: true });
+  }
+  const siteUrl = resolveSiteUrl();
+  if (!siteUrl) {
+    console.warn(
+      "[typematter] Missing site URL. Set TYPEMATTER_SITE_URL (or site.config.ts siteUrl) for correct robots/sitemap links."
+    );
+  }
+  const robotsPath = path.join(PUBLIC_DIR, ROBOTS_FILE);
+  fs.writeFileSync(robotsPath, buildRobotsTxt(siteUrl));
+
+  const sitemapPath = path.join(PUBLIC_DIR, SITEMAP_FILE);
+  if (siteUrl) {
+    fs.writeFileSync(sitemapPath, buildSitemapXml(result.registry, siteUrl));
+  } else if (!fs.existsSync(sitemapPath)) {
+    fs.writeFileSync(
+      sitemapPath,
+      buildSitemapXml(result.registry, "https://example.com")
+    );
+  }
+
+  return {
+    registryPath,
+    searchPath,
+    askPath,
+    publicAskPath,
+    robotsPath,
+    sitemapPath,
+  };
 }
 
 export function getRegistryPath(cacheDir = CACHE_DIR) {

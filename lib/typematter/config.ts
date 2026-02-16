@@ -45,6 +45,7 @@ export type AskAiUiConfig = {
 
 export type SiteConfig = {
   title: string;
+  siteUrl?: string;
   contentDir?: string;
   repo?: RepoConfig;
   feedback?: {

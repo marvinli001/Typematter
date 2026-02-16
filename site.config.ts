@@ -3,6 +3,7 @@ import type { SiteConfig } from "./lib/typematter/config";
 
 const siteConfig: SiteConfig = defineSiteConfig({
   title: "Typematter",
+  siteUrl: process.env.TYPEMATTER_SITE_URL ?? process.env.NEXT_PUBLIC_SITE_URL,
   repo: {
     url: "https://example.com/typematter",
     branch: "main",

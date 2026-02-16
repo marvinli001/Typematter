@@ -57,6 +57,17 @@ NEXT_PUBLIC_TYPEMATTER_ASK_AI_TIMEOUT_MS=25000 # optional
 NEXT_PUBLIC_TYPEMATTER_ASK_AI_ENABLED=true      # optional
 ```
 
+Sitemap/robots for Cloudflare AI Search:
+
+```bash
+TYPEMATTER_SITE_URL=https://docs.your-domain.com
+```
+
+Typematter build/export will then auto-generate:
+
+- `public/robots.txt` (with `Sitemap: <site>/sitemap.xml`)
+- `public/sitemap.xml` (all non-hidden doc routes)
+
 Worker reference implementation:
 
 - `integrations/cloudflare-ask-ai-worker/src/index.ts`

@@ -9,6 +9,8 @@ out/
 .swc/
 .typematter/
 public/typematter/
+public/robots.txt
+public/sitemap.xml
 
 # Logs
 *.log
