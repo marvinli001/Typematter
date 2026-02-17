@@ -621,6 +621,11 @@ function toOpenAiUsage(raw: any): StreamUsage {
   };
 }
 
+function shouldDisableThinking(model: string) {
+  const normalized = model.trim().toLowerCase();
+  return normalized === "qwen3.5-plus";
+}
+
 async function streamChatCompletion(
   env: Env,
   payload: AskRequest,
@@ -630,8 +635,17 @@ async function streamChatCompletion(
   const { systemMessage, userMessage } = buildPrompt(payload, sources);
   const baseUrl = env.OPENAI_API_HOST.replace(/\/+$/, "");
   const url = `${baseUrl}/chat/completions`;
+  const extraBody =
+    shouldDisableThinking(env.OPENAI_MODEL)
+      ? {
+          extra_body: {
+            enable_thinking: false,
+          },
+        }
+      : {};
   const requestVariants = [
     {
+      ...extraBody,
       model: env.OPENAI_MODEL,
       stream: true,
       stream_options: {
@@ -644,6 +658,7 @@ async function streamChatCompletion(
       ],
     },
     {
+      ...extraBody,
       model: env.OPENAI_MODEL,
       stream: true,
       messages: [
