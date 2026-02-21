@@ -433,7 +433,7 @@ export default function AskPanel({
   }
 
   return (
-    <div className="ask-panel" hidden={!active}>
+    <div className={`ask-panel${active ? " is-active" : ""}`} aria-hidden={!active}>
       <div className="ask-thread">
         <div className="ask-message ask-message-assistant ask-intro-message">
           <span className="ask-avatar" aria-hidden="true">
