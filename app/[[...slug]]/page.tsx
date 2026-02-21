@@ -4,12 +4,32 @@ import DocsShell from "../../components/docs/DocsShell";
 import { getDocBySlugSegments } from "../../lib/docs";
 import { getNavData } from "../../lib/nav";
 import { getI18nConfig } from "../../lib/i18n";
+import { getUiCopy } from "../../lib/i18n/ui-copy";
 import { renderMdx } from "../../lib/mdx";
-import { loadRegistry, loadSearchIndex } from "../../lib/typematter/build-registry";
+import { loadRegistry } from "../../lib/typematter/build-registry";
+import type { ContentPage } from "../../lib/typematter/plugin";
 import siteConfig from "../../site.config";
 
 export const dynamicParams = false;
 export const dynamic = "force-static";
+
+function resolveLanguageFromSlug(slug?: string[]) {
+  const i18n = getI18nConfig();
+  if (!i18n.enabled) {
+    return undefined;
+  }
+
+  const first = slug?.[0];
+  if (!first) {
+    return i18n.defaultLanguage ?? undefined;
+  }
+
+  if (i18n.languages.some((language) => language.code === first)) {
+    return first;
+  }
+
+  return i18n.defaultLanguage ?? undefined;
+}
 
 export async function generateStaticParams() {
   const registry = loadRegistry({
@@ -35,14 +55,18 @@ export async function generateMetadata({
   params: Promise<{ slug?: string[] }>;
 }): Promise<Metadata> {
   const { slug } = await params;
+  const routeLanguage = resolveLanguageFromSlug(slug);
+  const copy = getUiCopy(routeLanguage);
   const doc = getDocBySlugSegments(slug);
   if (!doc) {
-    return { title: "Not Found" };
+    return { title: copy.metadata.notFoundTitle };
   }
 
+  const docLanguage = doc.language ?? routeLanguage;
+  const docCopy = getUiCopy(docLanguage);
   return {
-    title: `${doc.frontmatter.title} | Typematter`,
-    description: doc.frontmatter.description ?? "Typematter documentation",
+    title: `${doc.frontmatter.title} | ${siteConfig.title}`,
+    description: doc.frontmatter.description ?? docCopy.metadata.docDescriptionFallback,
   };
 }
 
@@ -57,14 +81,39 @@ export default async function DocPage({
     notFound();
   }
 
-  const content = await renderMdx(doc.content);
   const i18nConfig = getI18nConfig();
   const registry = loadRegistry({
     buildIfMissing: process.env.NODE_ENV !== "production",
   });
-  const searchIndex = loadSearchIndex({
-    buildIfMissing: process.env.NODE_ENV !== "production",
+  const registryIndex = registry.byRoute[doc.route];
+  const registryPage =
+    typeof registryIndex === "number" ? registry.pages[registryIndex] : undefined;
+  const contentPage: ContentPage = {
+    route: doc.route,
+    contentRoute: doc.contentRoute,
+    contentPath: doc.contentPath,
+    language: doc.language,
+    title: doc.frontmatter.title,
+    order: doc.frontmatter.order,
+    section: doc.frontmatter.section,
+    status: doc.frontmatter.status,
+    version: doc.frontmatter.version,
+    tags: doc.frontmatter.tags,
+    description: doc.frontmatter.description,
+    hidden: doc.frontmatter.hidden,
+    pager: doc.frontmatter.pager,
+    toc: doc.headings,
+    components: registryPage?.components,
+    filePath: doc.filePath,
+    relativePath: doc.relativePath,
+    content: doc.content,
+    plainText: doc.plainText,
+  };
+  const content = await renderMdx(doc.content, {
+    components: registryPage?.components,
+    page: contentPage,
   });
+
   const allDocs = i18nConfig.enabled ? registry.pages : [];
   const languages = i18nConfig.enabled
     ? i18nConfig.languages.map((lang) => {
@@ -75,9 +124,7 @@ export default async function DocPage({
           docsForLanguage.find((item) => item.contentRoute === "/") ??
           docsForLanguage[0];
         const targetDoc = doc.language
-          ? docsForLanguage.find(
-              (item) => item.contentPath === doc.contentPath
-            )
+          ? docsForLanguage.find((item) => item.contentPath === doc.contentPath)
           : fallbackDoc;
         return {
           code: lang.code,
@@ -92,21 +139,10 @@ export default async function DocPage({
     group.items.filter((item) => item.type === "doc")
   );
   const activeLanguage = doc.language ?? i18nConfig.defaultLanguage ?? undefined;
+  const uiCopy = getUiCopy(activeLanguage);
   const docRoutes = new Set(docItems.map((item) => item.href));
-  const searchItems = searchIndex
-    .filter((item) => docRoutes.has(item.href))
-    .filter((item) =>
-      i18nConfig.enabled ? item.language === activeLanguage : true
-    )
-    .map((item) => ({
-      title: item.title,
-      href: item.href,
-      section: item.section,
-      content: item.content,
-    }));
   const currentIndex = docItems.findIndex((item) => item.href === doc.route);
-  const prevItem =
-    currentIndex > 0 ? docItems[currentIndex - 1] : undefined;
+  const prevItem = currentIndex > 0 ? docItems[currentIndex - 1] : undefined;
   const nextItem =
     currentIndex >= 0 && currentIndex < docItems.length - 1
       ? docItems[currentIndex + 1]
@@ -114,16 +150,11 @@ export default async function DocPage({
   const pager =
     doc.frontmatter.pager && currentIndex >= 0
       ? {
-          prev: prevItem
-            ? { title: prevItem.title, href: prevItem.href }
-            : undefined,
-          next: nextItem
-            ? { title: nextItem.title, href: nextItem.href }
-            : undefined,
+          prev: prevItem ? { title: prevItem.title, href: prevItem.href } : undefined,
+          next: nextItem ? { title: nextItem.title, href: nextItem.href } : undefined,
         }
       : undefined;
-  const resolvedPager =
-    pager && (pager.prev || pager.next) ? pager : undefined;
+  const resolvedPager = pager && (pager.prev || pager.next) ? pager : undefined;
 
   const askEndpoint = process.env.NEXT_PUBLIC_TYPEMATTER_ASK_AI_ENDPOINT?.trim();
   const askEnabledEnv = process.env.NEXT_PUBLIC_TYPEMATTER_ASK_AI_ENABLED?.trim();
@@ -150,7 +181,7 @@ export default async function DocPage({
     examples,
   };
   const askContext = {
-    language: activeLanguage ?? "default",
+    language: activeLanguage ?? i18nConfig.defaultLanguage ?? "en",
     currentRoute: doc.route,
     currentSection: doc.frontmatter.section,
     title: doc.frontmatter.title,
@@ -165,14 +196,19 @@ export default async function DocPage({
       status={doc.frontmatter.status}
       version={doc.frontmatter.version}
       tags={doc.frontmatter.tags}
-      searchItems={searchItems}
       markdown={doc.content}
       currentRoute={doc.route}
-      docPath={doc.relativePath}
       languages={languages}
       pager={resolvedPager}
       askAi={askAi}
       askContext={askContext}
+      uiCopy={uiCopy}
+      standardSearch={{
+        language: activeLanguage ?? i18nConfig.defaultLanguage ?? "en",
+        manifestPath: "/typematter/search/manifest.json",
+        allowedRoutes: Array.from(docRoutes),
+      }}
+      usedComponents={registryPage?.components ?? []}
     >
       {content}
     </DocsShell>

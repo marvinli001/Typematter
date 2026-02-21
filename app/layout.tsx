@@ -3,6 +3,8 @@ import "katex/dist/katex.min.css";
 import type { ReactNode } from "react";
 import { IBM_Plex_Sans, JetBrains_Mono, Space_Grotesk } from "next/font/google";
 import ClientInteractions from "../components/ClientInteractions";
+import siteConfig from "../site.config";
+import { getUiCopy, resolveUiLanguage } from "../lib/i18n/ui-copy";
 
 const ibmPlexSans = IBM_Plex_Sans({
   subsets: ["latin"],
@@ -25,9 +27,14 @@ const jetbrainsMono = JetBrains_Mono({
   display: "swap",
 });
 
+const defaultLanguage = siteConfig.i18n?.defaultLanguage ?? "en";
+const defaultUiLanguage = resolveUiLanguage(defaultLanguage);
+const defaultCopy = getUiCopy(defaultUiLanguage);
+const htmlLang = defaultUiLanguage === "cn" ? "zh-CN" : "en";
+
 export const metadata = {
-  title: "Typematter Docs Shell",
-  description: "Static-first docs shell with MDX and component semantics.",
+  title: defaultCopy.metadata.shellTitle,
+  description: defaultCopy.metadata.shellDescription,
 };
 
 const themeScript = `
@@ -54,7 +61,7 @@ const themeScript = `
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html
-      lang="zh-CN"
+      lang={htmlLang}
       className={`${ibmPlexSans.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable}`}
       suppressHydrationWarning
     >

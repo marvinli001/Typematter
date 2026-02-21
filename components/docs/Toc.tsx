@@ -6,6 +6,7 @@ import type { TocItem } from "../../lib/docs";
 
 type TocProps = {
   items: TocItem[];
+  emptyLabel?: string;
 };
 
 type IndicatorState = {
@@ -20,7 +21,7 @@ const DEFAULT_INDICATOR: IndicatorState = {
   visible: false,
 };
 
-export default function Toc({ items }: TocProps) {
+export default function Toc({ items, emptyLabel = "No sections" }: TocProps) {
   const pathname = usePathname();
   const [activeId, setActiveId] = useState<string | null>(
     items[0]?.id ?? null
@@ -125,7 +126,7 @@ export default function Toc({ items }: TocProps) {
   }, [activeId, ids]);
 
   if (items.length === 0) {
-    return <div className="toc-empty">No sections</div>;
+    return <div className="toc-empty">{emptyLabel}</div>;
   }
 
   return (

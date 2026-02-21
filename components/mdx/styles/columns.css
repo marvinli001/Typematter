@@ -1,0 +1,21 @@
+.columns {
+  display: grid;
+  gap: 1rem;
+  margin: 1.2rem 0;
+}
+
+.column {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface-muted);
+  padding: 1rem;
+}
+
+.column-title {
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+}
+
+.column-body {
+  color: var(--text-muted);
+}

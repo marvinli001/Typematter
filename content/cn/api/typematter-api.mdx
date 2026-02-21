@@ -80,7 +80,11 @@ export default defineNavConfig<Route>()({
 ```ts
 export type TypematterPlugin = {
   name: string;
-  mdx?: { remark?: any[]; rehype?: any[] };
+  mdx?: {
+    remark?: any[];
+    rehype?: any[];
+    components?: Record<string, unknown>;
+  };
   hooks?: {
     buildStart?(ctx): void | Promise<void>;
     contentCollected?(ctx, pages): void | Promise<void>;
@@ -92,6 +96,12 @@ export type TypematterPlugin = {
   };
 };
 ```
+
+构建/导出路径中的执行顺序固定为：
+`buildStart -> contentCollected -> pageParsed(逐页) -> registryReady -> buildEnd`。
+
+`validate` 路径会先跑内建规则，再执行插件 `validate` 钩子。
+`mdx.remark` / `mdx.rehype` / `mdx.components` 在 MDX 渲染链中真实执行。
 
 ## MDX 组件与语义一致性
 
@@ -120,5 +130,14 @@ type ContentRegistry = {
 
 ## 构建验证
 
-验证是第一等公民，内置规则包括：断链、重复标题、孤立页面、无效 frontmatter、空目录等。规则支持 `error | warn | off` 并允许插件扩展。
+验证是第一等公民，内置规则包括：断链、失效锚点、重复标题、孤立页面、无效 frontmatter、空目录、i18n 结构、导航一致性等。
+
+新增治理规则：
+
+- `headingDepth`：标题最大深度与层级跳跃校验（例如 h2 -> h4）。
+- `missingTranslations`：以默认语言为基线，检查缺页、关键 frontmatter 缺失、单语页面。
+- `frontmatterSchema`：基于路径规则的分层 frontmatter schema 校验。
+
+规则支持 `error | warn | off` 并允许插件扩展。
+schema 规则按声明顺序合并，路径匹配使用 `include` / `exclude`，后规则覆盖前规则。
 

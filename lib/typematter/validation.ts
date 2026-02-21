@@ -15,11 +15,15 @@ import {
 import { getNavData } from "../nav";
 import { getI18nConfig } from "../i18n";
 import type {
+  FrontmatterFieldRule,
+  FrontmatterSchemaRule,
+  FrontmatterTypeRule,
   ValidationRuleId,
   ValidationRuleLevel,
   ValidationConfig,
 } from "./config";
 import type { TypematterPlugin } from "./plugin";
+import { createBuildContext, getConfiguredPlugins } from "./plugin-runner";
 
 type ValidationIssue = {
   type: string;
@@ -70,6 +74,9 @@ const DEFAULT_RULES: Record<ValidationRuleId, ValidationRuleLevel> = {
   navMissing: "error",
   navDuplicates: "error",
   i18nStructure: "error",
+  missingTranslations: "error",
+  headingDepth: "error",
+  frontmatterSchema: "error",
 };
 
 const i18nConfig = getI18nConfig();
@@ -160,6 +167,137 @@ function resolveInternalLink(currentRoute: string, url: string) {
   }
 
   return { route: resolvedRoute, hash };
+}
+
+function globToRegExp(glob: string) {
+  const escaped = glob
+    .replace(/[.+^${}()|[\]\\]/g, "\\$&")
+    .replace(/\*\*/g, "__DOUBLE_STAR__")
+    .replace(/\*/g, "[^/]*")
+    .replace(/__DOUBLE_STAR__/g, ".*");
+  return new RegExp(`^${escaped}$`);
+}
+
+function matchPath(pathname: string, patterns?: string[]) {
+  if (!patterns || patterns.length === 0) {
+    return false;
+  }
+  return patterns.some((pattern) => globToRegExp(pattern).test(pathname));
+}
+
+function isIgnoredTranslationPath(pathname: string, config?: ValidationConfig) {
+  return matchPath(pathname, config?.translation?.ignorePaths);
+}
+
+const DEFAULT_FRONTMATTER_SCHEMA: Record<string, FrontmatterFieldRule> = {
+  title: { required: true, type: "string" },
+  order: { required: true, type: "number" },
+  section: { required: true, type: "string" },
+  status: { type: "string" },
+  version: { type: "string|number" },
+  tags: { type: "string[]" },
+  slug: { type: "string" },
+  description: { type: "string" },
+  hidden: { type: "boolean" },
+  pager: { type: "boolean" },
+};
+
+function getSchemaRulesForPath(pathname: string, rules: FrontmatterSchemaRule[]) {
+  return rules.filter((rule) => {
+    const included =
+      !rule.include || rule.include.length === 0
+        ? true
+        : matchPath(pathname, rule.include);
+    const excluded = matchPath(pathname, rule.exclude);
+    return included && !excluded;
+  });
+}
+
+function mergeSchemaRules(
+  pathname: string,
+  rules: FrontmatterSchemaRule[]
+): Record<string, FrontmatterFieldRule> {
+  const merged = { ...DEFAULT_FRONTMATTER_SCHEMA };
+  const matched = getSchemaRulesForPath(pathname, rules);
+  matched.forEach((rule) => {
+    Object.entries(rule.fields).forEach(([key, fieldRule]) => {
+      merged[key] = { ...(merged[key] ?? {}), ...fieldRule };
+    });
+  });
+  return merged;
+}
+
+function normalizeFieldTypes(typeRule?: FrontmatterTypeRule | FrontmatterTypeRule[]) {
+  if (!typeRule) {
+    return [];
+  }
+  return Array.isArray(typeRule) ? typeRule : [typeRule];
+}
+
+function isValueOfType(
+  value: unknown,
+  typeRule: FrontmatterTypeRule,
+  itemType?: FrontmatterTypeRule
+): boolean {
+  if (typeRule === "string") {
+    return typeof value === "string";
+  }
+  if (typeRule === "number") {
+    return typeof value === "number" && Number.isFinite(value);
+  }
+  if (typeRule === "boolean") {
+    return typeof value === "boolean";
+  }
+  if (typeRule === "array") {
+    if (!Array.isArray(value)) {
+      return false;
+    }
+    if (!itemType) {
+      return true;
+    }
+    return value.every((item) => isValueOfType(item, itemType));
+  }
+  if (typeRule === "object") {
+    return typeof value === "object" && value !== null && !Array.isArray(value);
+  }
+  if (typeRule === "string[]") {
+    return Array.isArray(value) && value.every((item) => typeof item === "string");
+  }
+  if (typeRule === "number[]") {
+    return (
+      Array.isArray(value) &&
+      value.every((item) => typeof item === "number" && Number.isFinite(item))
+    );
+  }
+  if (typeRule === "string|number") {
+    return typeof value === "string" || typeof value === "number";
+  }
+
+  return false;
+}
+
+function validateSchemaFieldValue(
+  value: unknown,
+  fieldRule: FrontmatterFieldRule
+): { valid: boolean; detail?: string } {
+  const types = normalizeFieldTypes(fieldRule.type);
+  if (types.length > 0) {
+    const typeMatched = types.some((typeRule) =>
+      isValueOfType(value, typeRule, fieldRule.itemType)
+    );
+    if (!typeMatched) {
+      return { valid: false, detail: `类型不匹配，期望 ${types.join(" | ")}` };
+    }
+  }
+
+  if (fieldRule.enum && fieldRule.enum.length > 0) {
+    const enumMatched = fieldRule.enum.some((candidate) => candidate === value);
+    if (!enumMatched) {
+      return { valid: false, detail: `值必须属于枚举: ${fieldRule.enum.join(", ")}` };
+    }
+  }
+
+  return { valid: true };
 }
 
 function validateFrontmatter(
@@ -321,6 +459,235 @@ function validateFrontmatter(
         options
       );
     }
+  });
+}
+
+function validateFrontmatterSchema(
+  report: ValidationReport,
+  config?: ValidationConfig,
+  options?: ValidateOptions
+) {
+  if (!shouldRunRule("frontmatterSchema", config, options)) {
+    return;
+  }
+
+  const schemaRules = config?.frontmatterSchemas ?? [];
+  const docs = getAllDocEntries();
+
+  docs.forEach((doc) => {
+    const schema = mergeSchemaRules(doc.relativePath, schemaRules);
+    const data = doc.frontmatter as Record<string, unknown>;
+
+    Object.entries(schema).forEach(([field, fieldRule]) => {
+      const value = data[field];
+      const exists = value !== undefined && value !== null;
+
+      if (fieldRule.required && !exists) {
+        reportIssue(
+          "frontmatterSchema",
+          {
+            type: "frontmatter-schema",
+            message: `frontmatter 字段缺失: ${field}`,
+            file: doc.relativePath,
+          },
+          report,
+          config,
+          options
+        );
+        return;
+      }
+
+      if (!exists) {
+        return;
+      }
+
+      const result = validateSchemaFieldValue(value, fieldRule);
+      if (!result.valid) {
+        reportIssue(
+          "frontmatterSchema",
+          {
+            type: "frontmatter-schema",
+            message: `frontmatter 字段 ${field} 校验失败: ${result.detail ?? "无效值"}`,
+            file: doc.relativePath,
+          },
+          report,
+          config,
+          options
+        );
+      }
+    });
+  });
+}
+
+function validateHeadingDepth(
+  report: ValidationReport,
+  config?: ValidationConfig,
+  options?: ValidateOptions
+) {
+  if (!shouldRunRule("headingDepth", config, options)) {
+    return;
+  }
+
+  const maxDepth = Math.min(6, Math.max(2, config?.heading?.maxDepth ?? 6));
+  const allowSkip = config?.heading?.allowSkip ?? false;
+  const docs = getAllDocEntries();
+
+  docs.forEach((doc) => {
+    const tree = remark()
+      .use(remarkMdx)
+      .use(remarkGfm)
+      .use(remarkDirective)
+      .parse(doc.content);
+
+    let previousDepth = 0;
+    visit(tree, "heading", (node: { depth: number }) => {
+      const depth = node.depth;
+      if (depth > maxDepth) {
+        reportIssue(
+          "headingDepth",
+          {
+            type: "heading-depth",
+            message: `标题深度超出上限 h${maxDepth}: 当前为 h${depth}`,
+            file: doc.relativePath,
+          },
+          report,
+          config,
+          options
+        );
+      }
+
+      if (!allowSkip && previousDepth > 0 && depth - previousDepth > 1) {
+        reportIssue(
+          "headingDepth",
+          {
+            type: "heading-depth",
+            message: `标题层级跳跃: h${previousDepth} -> h${depth}`,
+            file: doc.relativePath,
+          },
+          report,
+          config,
+          options
+        );
+      }
+
+      previousDepth = depth;
+    });
+  });
+}
+
+function validateMissingTranslations(
+  report: ValidationReport,
+  config?: ValidationConfig,
+  options?: ValidateOptions
+) {
+  if (!shouldRunRule("missingTranslations", config, options)) {
+    return;
+  }
+
+  const i18n = getI18nConfig();
+  if (!i18n.enabled || !i18n.defaultLanguage) {
+    return;
+  }
+
+  const docs = getAllDocEntries();
+  const docsByLanguage = new Map<string, Map<string, (typeof docs)[number]>>();
+
+  i18n.languages.forEach((language) => {
+    docsByLanguage.set(language.code, new Map());
+  });
+
+  docs.forEach((doc) => {
+    if (!doc.language) {
+      return;
+    }
+    const bucket = docsByLanguage.get(doc.language);
+    if (!bucket) {
+      return;
+    }
+    bucket.set(doc.contentPath, doc);
+  });
+
+  const baseline = docsByLanguage.get(i18n.defaultLanguage);
+  if (!baseline) {
+    return;
+  }
+
+  baseline.forEach((baseDoc, contentPath) => {
+    if (isIgnoredTranslationPath(contentPath, config)) {
+      return;
+    }
+
+    i18n.languages.forEach((language) => {
+      const map = docsByLanguage.get(language.code);
+      const translated = map?.get(contentPath);
+
+      if (!translated) {
+        reportIssue(
+          "missingTranslations",
+          {
+            type: "i18n-missing",
+            message: `缺失翻译页面: ${contentPath} (lang: ${language.code})`,
+            file: baseDoc.relativePath,
+          },
+          report,
+          config,
+          options
+        );
+        return;
+      }
+
+      const requiredFields: Array<keyof typeof translated.frontmatter> = [
+        "title",
+        "order",
+        "section",
+      ];
+      requiredFields.forEach((field) => {
+        const value = translated.frontmatter[field];
+        if (value === undefined || value === null || value === "") {
+          reportIssue(
+            "missingTranslations",
+            {
+              type: "i18n-missing-frontmatter",
+              message: `翻译页面缺少关键字段 ${String(field)}: ${contentPath} (lang: ${language.code})`,
+              file: translated.relativePath,
+            },
+            report,
+            config,
+            options
+          );
+        }
+      });
+    });
+  });
+
+  i18n.languages.forEach((language) => {
+    if (language.code === i18n.defaultLanguage) {
+      return;
+    }
+
+    const map = docsByLanguage.get(language.code);
+    if (!map) {
+      return;
+    }
+
+    map.forEach((doc, contentPath) => {
+      if (isIgnoredTranslationPath(contentPath, config)) {
+        return;
+      }
+      if (!baseline.has(contentPath)) {
+        reportIssue(
+          "missingTranslations",
+          {
+            type: "i18n-extra",
+            message: `仅存在于非默认语言的页面: ${contentPath} (lang: ${language.code})`,
+            file: doc.relativePath,
+          },
+          report,
+          config,
+          options
+        );
+      }
+    });
   });
 }
 
@@ -668,33 +1035,52 @@ function validateOrphanDocs(
   });
 }
 
-export function validateDocs(options?: ValidateOptions): ValidationResult {
+export async function validateDocs(options?: ValidateOptions): Promise<ValidationResult> {
   const report = createReport();
   const validationConfig = siteConfig.validation;
 
   validateFrontmatter(report, validationConfig, options);
+  validateFrontmatterSchema(report, validationConfig, options);
   validateDuplicates(report, validationConfig, options);
+  validateHeadingDepth(report, validationConfig, options);
   validateEmptyDirs(report, validationConfig, options);
   validateI18nStructure(report, validationConfig, options);
+  validateMissingTranslations(report, validationConfig, options);
   validateLinks(report, validationConfig, options);
   validateNavConfig(report, validationConfig, options);
   validateOrphanDocs(report, validationConfig, options);
 
-  const plugins = options?.plugins ?? siteConfig.plugins ?? [];
-  plugins.forEach((plugin) => {
+  const plugins = getConfiguredPlugins(options?.plugins);
+  const ctx = createBuildContext();
+  for (const plugin of plugins) {
     if (plugin.hooks?.validate) {
-      plugin.hooks.validate(
-        {
-          siteConfig,
-          navConfig,
-          contentDir: getContentDir(),
-          cacheDir: path.join(process.cwd(), ".typematter"),
-          logger: console,
-        },
-        report
-      );
+      const pluginReport = {
+        ...report,
+        error: (issue: ValidationIssue) =>
+          report.error({
+            ...issue,
+            type: `${plugin.name}:${issue.type}`,
+          }),
+        warn: (issue: ValidationIssue) =>
+          report.warn({
+            ...issue,
+            type: `${plugin.name}:${issue.type}`,
+          }),
+      };
+
+      try {
+        await plugin.hooks.validate(ctx, pluginReport);
+      } catch (error) {
+        report.error({
+          type: `${plugin.name}:validate`,
+          message:
+            error instanceof Error
+              ? error.message
+              : `插件校验异常: ${String(error)}`,
+        });
+      }
     }
-  });
+  }
 
   const hasErrors = report.errors.length > 0;
   return { report, hasErrors };

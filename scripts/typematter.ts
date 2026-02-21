@@ -2,7 +2,15 @@ import fs from "fs";
 import path from "path";
 import { spawn } from "child_process";
 import siteConfig from "../site.config";
-import { buildRegistry, writeRegistryFiles } from "../lib/typematter/build-registry";
+import {
+  buildRegistryWithPlugins,
+  writeRegistryFiles,
+} from "../lib/typematter/build-registry";
+import {
+  createBuildContext,
+  getConfiguredPlugins,
+  runBuildHook,
+} from "../lib/typematter/plugin-runner";
 import { validateDocs } from "../lib/typematter/validation";
 
 type ParsedArgs = {
@@ -51,7 +59,7 @@ async function runNext(args: string[]) {
   });
 }
 
-function printValidationReport(report: ReturnType<typeof validateDocs>["report"]) {
+function printValidationReport(report: Awaited<ReturnType<typeof validateDocs>>["report"]) {
   if (report.errors.length === 0 && report.warnings.length === 0) {
     console.log("文档校验通过。");
     return;
@@ -71,7 +79,7 @@ function printValidationReport(report: ReturnType<typeof validateDocs>["report"]
   );
 }
 
-function watchContent(onRebuild: () => void) {
+function watchContent(onRebuild: () => void | Promise<void>) {
   const watchers: fs.FSWatcher[] = [];
   const schedule = (() => {
     let timer: NodeJS.Timeout | null = null;
@@ -80,7 +88,11 @@ function watchContent(onRebuild: () => void) {
         clearTimeout(timer);
       }
       timer = setTimeout(() => {
-        onRebuild();
+        Promise.resolve(onRebuild()).catch((error) => {
+          console.error(
+            error instanceof Error ? error.message : `Registry rebuild failed: ${String(error)}`
+          );
+        });
         timer = null;
       }, 150);
     };
@@ -115,13 +127,19 @@ function watchContent(onRebuild: () => void) {
 }
 
 async function runDev(extraArgs: string[]) {
-  const rebuild = () => {
-    const result = buildRegistry();
+  const plugins = getConfiguredPlugins();
+  const context = createBuildContext();
+  const rebuild = async () => {
+    await runBuildHook("buildStart", context, plugins);
+    const result = await buildRegistryWithPlugins({ plugins, context });
     writeRegistryFiles(result);
+    await runBuildHook("buildEnd", context, plugins, {
+      registry: result.registry,
+    });
     console.log("Registry refreshed.");
   };
 
-  rebuild();
+  await rebuild();
   const stopWatching = watchContent(rebuild);
   const code = await runNext(["dev", ...extraArgs]);
   stopWatching();
@@ -129,28 +147,38 @@ async function runDev(extraArgs: string[]) {
 }
 
 async function runBuild(extraArgs: string[]) {
-  const validation = validateDocs();
+  const plugins = getConfiguredPlugins();
+  const context = createBuildContext();
+  const validation = await validateDocs({ plugins });
   printValidationReport(validation.report);
   if (validation.hasErrors) {
     process.exit(1);
   }
 
-  const registry = buildRegistry();
+  await runBuildHook("buildStart", context, plugins);
+  const registry = await buildRegistryWithPlugins({ plugins, context });
   writeRegistryFiles(registry);
   const code = await runNext(["build", ...extraArgs]);
+  await runBuildHook("buildEnd", context, plugins, {
+    registry: registry.registry,
+  });
   process.exit(code);
 }
 
-function runValidate() {
-  const validation = validateDocs();
+async function runValidate() {
+  const plugins = getConfiguredPlugins();
+  const validation = await validateDocs({ plugins });
   printValidationReport(validation.report);
   if (validation.hasErrors) {
     process.exit(1);
   }
 }
 
-function runExportRegistry() {
-  const result = buildRegistry();
+async function runExportRegistry() {
+  const plugins = getConfiguredPlugins();
+  const context = createBuildContext();
+  await runBuildHook("buildStart", context, plugins);
+  const result = await buildRegistryWithPlugins({ plugins, context });
   const {
     registryPath,
     searchPath,
@@ -158,11 +186,16 @@ function runExportRegistry() {
     publicAskPath,
     robotsPath,
     sitemapPath,
+    searchManifestPath,
   } = writeRegistryFiles(result);
+  await runBuildHook("buildEnd", context, plugins, {
+    registry: result.registry,
+  });
   console.log(`Registry written: ${registryPath}`);
   console.log(`Search index written: ${searchPath}`);
   console.log(`Ask index written: ${askPath}`);
   console.log(`Public ask index written: ${publicAskPath}`);
+  console.log(`Standard search manifest written: ${searchManifestPath}`);
   console.log(`Robots written: ${robotsPath}`);
   console.log(`Sitemap written: ${sitemapPath}`);
 }
@@ -207,10 +240,10 @@ async function main() {
       await runBuild(rest);
       return;
     case "validate":
-      runValidate();
+      await runValidate();
       return;
     case "export-registry":
-      runExportRegistry();
+      await runExportRegistry();
       return;
     case "new":
       runNew(options);

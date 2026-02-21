@@ -13,9 +13,10 @@ Typematter is a static-first documentation shell built around MDX. The system em
 ## Features
 - Static rendering pipeline for MDX content
 - Directory-based navigation and ordering
-- Component registry for reusable doc patterns
-- Content validation (broken links, duplicate titles, orphan pages)
-- Lightweight search and page copy utilities
+- Executable plugin lifecycle across build, registry, MDX render, and validation
+- Component registry for reusable doc patterns with per-page component detection
+- Content governance validation (links, anchors, headings depth, translations, schema)
+- Standard search with on-demand shard loading and weighted ranking
 - Optional Ask AI tab in search modal (Cloudflare AI Search + Chat Completions)
 - Multilingual content support (when enabled)
 
@@ -88,8 +89,38 @@ Use semantic MDX patterns for consistent rendering. Examples include callouts, c
 ## Validation
 The build pipeline includes content-quality checks for:
 - Broken links
+- Broken heading anchors
 - Duplicate titles
 - Orphan pages
 - Invalid metadata
+- Heading depth and heading-level skips
+- Missing translations (page + key frontmatter fields)
+- Path-layered frontmatter schema rules
+
+## Plugin lifecycle
+Typematter plugins run in a fixed lifecycle:
+
+- `buildStart`
+- `contentCollected`
+- `pageParsed` (per page)
+- `registryReady`
+- `buildEnd`
+- `validate` (after built-in validation rules)
+- `pageRendered` (MDX render stage)
+
+MDX plugin entries are fully executable:
+
+- `mdx.remark`
+- `mdx.rehype`
+- `mdx.components`
+
+## Standard search artifacts
+Build output includes standard search assets:
+
+- `public/typematter/search/manifest.json`
+- `public/typematter/search/docs.<lang>.json`
+- `public/typematter/search/shards/<lang>/<bucket>.json`
+
+The search modal loads `manifest + docs` first, then fetches shard buckets on demand by query tokens.
 
 

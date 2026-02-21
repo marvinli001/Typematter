@@ -80,7 +80,11 @@ Plugins extend Markdown syntax, generate search indices, build API reference pag
 ```ts
 export type TypematterPlugin = {
   name: string;
-  mdx?: { remark?: any[]; rehype?: any[] };
+  mdx?: {
+    remark?: any[];
+    rehype?: any[];
+    components?: Record<string, unknown>;
+  };
   hooks?: {
     buildStart?(ctx): void | Promise<void>;
     contentCollected?(ctx, pages): void | Promise<void>;
@@ -92,6 +96,10 @@ export type TypematterPlugin = {
   };
 };
 ```
+
+Execution order is fixed in build/export: `buildStart -> contentCollected -> pageParsed(*) -> registryReady -> buildEnd`.
+Validation runs built-in rules first and then plugin `validate` hooks.
+MDX hooks (`remark` / `rehype` / `components`) execute in the MDX render pipeline.
 
 ## MDX components
 
@@ -120,5 +128,15 @@ Runtime reads the registry only and must not rescan the filesystem.
 
 ## Build validation
 
-Validation is first-class: broken links, duplicate titles, orphan pages, invalid frontmatter, empty directories, and more. Rules support `error | warn | off` and can be extended by plugins.
+Validation is first-class: broken links, broken anchors, duplicate titles, orphan pages, invalid frontmatter, empty directories, i18n structure, and nav checks.
+
+Additional governance rules:
+
+- `headingDepth`: max heading depth and skip-level detection (e.g. h2 -> h4).
+- `missingTranslations`: default-language baseline checks for missing pages, missing key frontmatter fields, and language-only pages.
+- `frontmatterSchema`: layered, path-based frontmatter schema validation.
+
+Rules support `error | warn | off` and can be extended by plugins.
+
+Schema rules merge by declaration order and path match (`include` / `exclude`), with later rules overriding earlier ones.
 

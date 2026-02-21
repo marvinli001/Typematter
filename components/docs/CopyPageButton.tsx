@@ -5,11 +5,13 @@ import { useState } from "react";
 type CopyPageButtonProps = {
   markdown: string;
   label?: string;
+  copiedLabel?: string;
 };
 
 export default function CopyPageButton({
   markdown,
   label = "Copy page",
+  copiedLabel = "Copied",
 }: CopyPageButtonProps) {
   const [copied, setCopied] = useState(false);
 
@@ -46,7 +48,7 @@ export default function CopyPageButton({
       className={`copy-page${copied ? " copied" : ""}`}
       type="button"
       onClick={handleCopy}
-      aria-label={label}
+      aria-label={copied ? copiedLabel : label}
     >
       {copied ? (
         <svg viewBox="0 0 24 24" aria-hidden="true" className="icon">
@@ -58,7 +60,7 @@ export default function CopyPageButton({
           <rect x="5" y="5" width="10" height="10" rx="2" />
         </svg>
       )}
-      <span className="copy-page-label">{label}</span>
+      <span className="copy-page-label">{copied ? copiedLabel : label}</span>
     </button>
   );
 }

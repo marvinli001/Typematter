@@ -155,7 +155,7 @@ function extractHeadings(source: string): TocItem[] {
 
   visit(tree, "heading", (node: { depth: number }) => {
     const depth = node.depth;
-    if (depth < 2 || depth > 3) {
+    if (depth < 2 || depth > 6) {
       return;
     }
 

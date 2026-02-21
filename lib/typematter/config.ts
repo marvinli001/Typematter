@@ -12,11 +12,45 @@ export type ValidationRuleId =
   | "emptyDirs"
   | "navMissing"
   | "navDuplicates"
-  | "i18nStructure";
+  | "i18nStructure"
+  | "missingTranslations"
+  | "headingDepth"
+  | "frontmatterSchema";
+
+export type FrontmatterTypeRule =
+  | "string"
+  | "number"
+  | "boolean"
+  | "array"
+  | "object"
+  | "string[]"
+  | "number[]"
+  | "string|number";
+
+export type FrontmatterFieldRule = {
+  required?: boolean;
+  type?: FrontmatterTypeRule | FrontmatterTypeRule[];
+  enum?: Array<string | number | boolean>;
+  itemType?: Exclude<FrontmatterTypeRule, "array" | "object">;
+};
+
+export type FrontmatterSchemaRule = {
+  include?: string[];
+  exclude?: string[];
+  fields: Record<string, FrontmatterFieldRule>;
+};
 
 export type ValidationConfig = {
   rules?: Partial<Record<ValidationRuleId, ValidationRuleLevel>>;
   strict?: boolean;
+  frontmatterSchemas?: FrontmatterSchemaRule[];
+  translation?: {
+    ignorePaths?: string[];
+  };
+  heading?: {
+    maxDepth?: number;
+    allowSkip?: boolean;
+  };
 };
 
 export type LanguageOption = {

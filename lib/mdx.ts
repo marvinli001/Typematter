@@ -7,12 +7,34 @@ import rehypeSlug from "rehype-slug";
 import rehypeAutolinkHeadings from "rehype-autolink-headings";
 import rehypeHighlight from "rehype-highlight";
 import rehypeKatex from "rehype-katex";
-import { mdxComponents } from "../components/mdx/mdx-components";
+import { resolveMdxComponents } from "../components/mdx/component-registry";
+import type { BuildContext, ContentPage, TypematterPlugin } from "./typematter/plugin";
+import {
+  collectMdxPlugins,
+  createBuildContext,
+  getConfiguredPlugins,
+  runBuildHook,
+} from "./typematter/plugin-runner";
 import remarkCodeTabs from "./remark-code-tabs";
 import remarkDocsComponents from "./remark-docs-components";
 import rehypeCodeDiff from "./rehype-code-diff";
 
-export async function renderMdx(source: string) {
+type RenderMdxOptions = {
+  components?: string[];
+  plugins?: TypematterPlugin[];
+  context?: BuildContext;
+  page?: ContentPage;
+};
+
+export async function renderMdx(source: string, options?: RenderMdxOptions) {
+  const plugins = getConfiguredPlugins(options?.plugins);
+  const context = options?.context ?? createBuildContext();
+  const mdxPluginConfig = collectMdxPlugins(plugins);
+  const components = await resolveMdxComponents(
+    options?.components ?? options?.page?.components,
+    mdxPluginConfig.components
+  );
+
   const { default: MDXContent } = await evaluate(source, {
     ...runtime,
     remarkPlugins: [
@@ -21,6 +43,7 @@ export async function renderMdx(source: string) {
       remarkMath,
       remarkCodeTabs,
       remarkDocsComponents,
+      ...mdxPluginConfig.remark,
     ],
     rehypePlugins: [
       rehypeSlug,
@@ -28,8 +51,14 @@ export async function renderMdx(source: string) {
       rehypeKatex,
       [rehypeHighlight, { ignoreMissing: true }],
       rehypeCodeDiff,
+      ...mdxPluginConfig.rehype,
     ],
   });
 
-  return runtime.jsx(MDXContent, { components: mdxComponents });
+  const rendered = runtime.jsx(MDXContent, { components });
+  if (options?.page) {
+    await runBuildHook("pageRendered", context, plugins, options.page);
+  }
+  return rendered;
 }
+

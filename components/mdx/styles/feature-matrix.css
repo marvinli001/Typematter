@@ -1,0 +1,97 @@
+.feature-matrix {
+  margin: 1.2rem 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.feature-matrix table {
+  width: 100%;
+  border-collapse: collapse;
+  border-spacing: 0;
+  border-top: 1px solid var(--border);
+}
+
+.feature-matrix thead th {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-soft);
+  font-weight: 600;
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+
+.feature-matrix td {
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.92rem;
+  color: var(--text);
+  vertical-align: middle;
+}
+
+.feature-matrix th:not(:first-child),
+.feature-matrix td:not(:first-child) {
+  text-align: center;
+}
+
+.feature-matrix tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.matrix-cell {
+  font-weight: 500;
+}
+
+.matrix-status-cell {
+  text-align: center;
+  min-width: 140px;
+  font-weight: 400;
+}
+
+.matrix-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  border: 1.5px solid var(--text-soft);
+  color: var(--text-soft);
+}
+
+.matrix-status svg {
+  width: 10px;
+  height: 10px;
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+}
+
+.matrix-status.yes {
+  background: var(--text);
+  border-color: var(--text);
+  color: var(--surface);
+}
+
+.matrix-status.no {
+  border-color: var(--text-soft);
+  color: var(--text-soft);
+}
+
+.matrix-status.soon {
+  width: auto;
+  height: auto;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--text-soft);
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+@media (max-width: 700px) {
+  .matrix-status-cell {
+    min-width: 110px;
+  }
+}

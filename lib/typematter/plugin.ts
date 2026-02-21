@@ -34,6 +34,7 @@ export type TypematterPlugin = {
   mdx?: {
     remark?: any[];
     rehype?: any[];
+    components?: Record<string, unknown>;
   };
   hooks?: {
     buildStart?: (ctx: BuildContext) => void | Promise<void>;

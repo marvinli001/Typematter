@@ -1,10 +1,12 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import type { ReactNode } from "react";
 import type { NavGroup } from "../../lib/nav";
 import type { TocItem } from "../../lib/docs";
+import type { UiCopy } from "../../lib/i18n/ui-copy";
 import siteConfig from "../../site.config";
 import RouteTransition from "../RouteTransition";
 import SearchModal from "../SearchModal";
+import MdxComponentStyles from "../mdx/MdxComponentStyles";
 import CopyPageButton from "./CopyPageButton";
 import Toc from "./Toc";
 
@@ -23,15 +25,8 @@ type DocsShellProps = {
   status?: string;
   version?: string | number;
   tags?: string[];
-  searchItems: Array<{
-    title: string;
-    href: string;
-    section?: string;
-    content?: string;
-  }>;
   markdown?: string;
   currentRoute: string;
-  docPath: string;
   languages?: Array<{
     code: string;
     label: string;
@@ -56,6 +51,13 @@ type DocsShellProps = {
     currentSection: string;
     title: string;
   };
+  standardSearch: {
+    language: string;
+    manifestPath?: string;
+    allowedRoutes?: string[];
+  };
+  usedComponents?: string[];
+  uiCopy: UiCopy;
   children: ReactNode;
 };
 
@@ -67,14 +69,15 @@ export default function DocsShell({
   status,
   version,
   tags,
-  searchItems,
   markdown,
   currentRoute,
-  docPath,
   languages,
   pager,
   askAi,
   askContext,
+  standardSearch,
+  usedComponents,
+  uiCopy,
   children,
 }: DocsShellProps) {
   const resolvedStatus = status ? STATUS_LABELS[status] ?? status : undefined;
@@ -84,26 +87,18 @@ export default function DocsShell({
     ...(tags ?? []),
   ];
   const showNavMeta = Boolean(resolvedStatus || version !== undefined);
-  const repo = siteConfig.repo;
-  const repoUrl = repo?.url?.replace(/\/$/, "");
-  const editBaseUrl =
-    repo?.editBaseUrl?.replace(/\/$/, "") ??
-    (repoUrl && repo?.branch ? `${repoUrl}/edit/${repo.branch}` : "");
-  const editUrl =
-    editBaseUrl && docPath && repo?.docsPath
-      ? `${editBaseUrl}/${repo.docsPath}/${docPath}`
-      : "";
   const activeLanguage = languages?.find((lang) => lang.active) ?? languages?.[0];
   const languagePrefix = activeLanguage ? `/${activeLanguage.code}` : "";
-  const buildLangHref = (path: string) => {
+  const buildLangHref = (routePath: string) => {
     if (!languagePrefix) {
-      return path;
+      return routePath;
     }
-    if (path === "/") {
+    if (routePath === "/") {
       return languagePrefix;
     }
-    return `${languagePrefix}${path.startsWith("/") ? path : `/${path}`}`;
+    return `${languagePrefix}${routePath.startsWith("/") ? routePath : `/${routePath}`}`;
   };
+
   return (
     <div className="docs-shell">
       <header className="topbar">
@@ -111,7 +106,7 @@ export default function DocsShell({
           <button
             className="icon-button menu-toggle"
             type="button"
-            aria-label="Toggle navigation"
+            aria-label={uiCopy.aria.toggleNavigation}
             data-menu-toggle
           >
             <svg viewBox="0 0 24 24" aria-hidden="true" className="icon">
@@ -126,21 +121,21 @@ export default function DocsShell({
             </span>
             <span className="brand-text">
               <span className="brand-name">{siteConfig.title}</span>
-              <span className="brand-meta">Internal Docs</span>
+              <span className="brand-meta">{uiCopy.docsShell.brandMeta}</span>
             </span>
           </Link>
           <nav className="top-links">
             <Link className="top-link" href={buildLangHref("/")}>
-              Docs
+              {uiCopy.docsShell.docs}
             </Link>
             <Link
               className="top-link"
               href={buildLangHref("/core-concepts/components")}
             >
-              Components
+              {uiCopy.docsShell.components}
             </Link>
             <Link className="top-link" href={buildLangHref("/changelog")}>
-              Changelog
+              {uiCopy.docsShell.changelog}
             </Link>
           </nav>
         </div>
@@ -148,9 +143,12 @@ export default function DocsShell({
           <div className="topbar-controls">
             {languages && languages.length > 0 ? (
               <details className="dropdown">
-                <summary className="dropdown-trigger">
+                <summary
+                  className="dropdown-trigger"
+                  aria-label={uiCopy.aria.languageMenu}
+                >
                   <span className="dropdown-text">
-                    {activeLanguage?.label ?? "Language"}
+                    {activeLanguage?.label ?? uiCopy.docsShell.language}
                   </span>
                   <svg viewBox="0 0 24 24" aria-hidden="true" className="icon">
                     <path d="M7 10l5 5 5-5" />
@@ -164,16 +162,17 @@ export default function DocsShell({
                       key={lang.code}
                     >
                       <span>{lang.label}</span>
-                      {lang.active ? (
-                        <span className="dropdown-check">✓</span>
-                      ) : null}
+                      {lang.active ? <span className="dropdown-check">✓</span> : null}
                     </Link>
                   ))}
                 </div>
               </details>
             ) : null}
             <details className="dropdown align-right" data-theme-menu>
-              <summary className="dropdown-trigger">
+              <summary
+                className="dropdown-trigger"
+                aria-label={uiCopy.aria.themeMenu}
+              >
                 <svg viewBox="0 0 24 24" aria-hidden="true" className="icon">
                   <path d="M12 4a1 1 0 011 1v2a1 1 0 11-2 0V5a1 1 0 011-1z" />
                   <path d="M12 17a1 1 0 011 1v2a1 1 0 11-2 0v-2a1 1 0 011-1z" />
@@ -186,7 +185,7 @@ export default function DocsShell({
                   <path d="M12 8a4 4 0 100 8 4 4 0 000-8z" />
                 </svg>
                 <span className="dropdown-text" data-theme-label suppressHydrationWarning>
-                  System
+                  {uiCopy.theme.system}
                 </span>
                 <svg viewBox="0 0 24 24" aria-hidden="true" className="icon">
                   <path d="M7 10l5 5 5-5" />
@@ -194,13 +193,13 @@ export default function DocsShell({
               </summary>
               <div className="dropdown-menu">
                 <button className="dropdown-item" type="button" data-theme-option="light">
-                  Light
+                  {uiCopy.theme.light}
                 </button>
                 <button className="dropdown-item" type="button" data-theme-option="dark">
-                  Dark
+                  {uiCopy.theme.dark}
                 </button>
                 <button className="dropdown-item" type="button" data-theme-option="system">
-                  System
+                  {uiCopy.theme.system}
                 </button>
               </div>
             </details>
@@ -213,11 +212,11 @@ export default function DocsShell({
       <div className="layout">
         <aside className="sidebar">
           <div className="sidebar-header">
-            <span className="sidebar-title">Navigation</span>
+            <span className="sidebar-title">{uiCopy.docsShell.navigation}</span>
             <button
               className="icon-button sidebar-close"
               type="button"
-              aria-label="Close navigation"
+              aria-label={uiCopy.aria.closeNavigation}
               data-menu-close
             >
               <svg viewBox="0 0 24 24" aria-hidden="true" className="icon">
@@ -232,7 +231,7 @@ export default function DocsShell({
               </svg>
               <input
                 type="search"
-                placeholder="Search"
+                placeholder={uiCopy.docsShell.searchPlaceholder}
                 data-search-trigger
                 readOnly
               />
@@ -279,9 +278,7 @@ export default function DocsShell({
           {showNavMeta ? (
             <div className="nav-footer">
               {resolvedStatus ? <div className="pill">{resolvedStatus}</div> : null}
-              {version !== undefined ? (
-                <span className="nav-meta">Version {version}</span>
-              ) : null}
+              {version !== undefined ? <span className="nav-meta">Version {version}</span> : null}
             </div>
           ) : null}
         </aside>
@@ -293,7 +290,13 @@ export default function DocsShell({
               <header className="doc-header">
                 <div className="doc-header-top">
                   <div className="eyebrow">{section}</div>
-                  {markdown ? <CopyPageButton markdown={markdown} /> : null}
+                  {markdown ? (
+                    <CopyPageButton
+                      markdown={markdown}
+                      label={uiCopy.copyPage.defaultLabel}
+                      copiedLabel={uiCopy.copyPage.copiedLabel}
+                    />
+                  ) : null}
                 </div>
                 <h1>{title}</h1>
                 {metaTags.length > 0 ? (
@@ -306,12 +309,13 @@ export default function DocsShell({
                   </div>
                 ) : null}
               </header>
+              <MdxComponentStyles components={usedComponents} />
               <div className="doc-body mdx-content">{children}</div>
               {pager ? (
-                <nav className="doc-pager" aria-label="Doc pagination">
+                <nav className="doc-pager" aria-label={uiCopy.docsShell.docPagination}>
                   {pager.prev ? (
                     <Link className="pager-card" href={pager.prev.href}>
-                      <span className="pager-label">Previous</span>
+                      <span className="pager-label">{uiCopy.docsShell.previous}</span>
                       <span className="pager-title">
                         <svg viewBox="0 0 24 24" aria-hidden="true" className="pager-icon">
                           <path d="M15 18l-6-6 6-6" />
@@ -324,7 +328,7 @@ export default function DocsShell({
                   )}
                   {pager.next ? (
                     <Link className="pager-card align-right" href={pager.next.href}>
-                      <span className="pager-label">Next</span>
+                      <span className="pager-label">{uiCopy.docsShell.next}</span>
                       <span className="pager-title">
                         {pager.next.title}
                         <svg viewBox="0 0 24 24" aria-hidden="true" className="pager-icon">
@@ -339,15 +343,19 @@ export default function DocsShell({
               ) : null}
             </article>
           </div>
-          <SearchModal items={searchItems} askAi={askAi} askContext={askContext} />
+          <SearchModal
+            standardSearch={standardSearch}
+            askAi={askAi}
+            askContext={askContext}
+            uiCopy={uiCopy}
+          />
         </main>
 
         <aside className="toc">
-          <div className="toc-title">On this page</div>
-          <Toc items={toc} />
+          <div className="toc-title">{uiCopy.docsShell.onThisPage}</div>
+          <Toc items={toc} emptyLabel={uiCopy.toc.noSections} />
         </aside>
       </div>
     </div>
   );
 }
-

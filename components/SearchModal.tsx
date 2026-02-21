@@ -1,23 +1,20 @@
 "use client";
 
-import type { FormEvent } from "react";
+import dynamic from "next/dynamic";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import type { AskScope } from "../lib/typematter/ask";
 import type {
-  AskDonePayload,
-  AskRequest,
-  AskScope,
-  AskSource,
-} from "../lib/typematter/ask";
+  SearchBucketFile,
+  SearchDocRecord,
+  SearchManifest,
+  SearchPosting,
+} from "../lib/typematter/search";
+import type { UiCopy } from "../lib/i18n/ui-copy";
 
-export type SearchItem = {
-  title: string;
-  href: string;
-  section?: string;
-  content?: string;
-};
+const AskPanel = dynamic(() => import("./search/AskPanel"), {
+  ssr: false,
+});
 
 type AskAiConfig = {
   enabled: boolean;
@@ -36,114 +33,76 @@ type AskContext = {
 };
 
 type SearchModalProps = {
-  items: SearchItem[];
+  standardSearch: {
+    language: string;
+    manifestPath?: string;
+    allowedRoutes?: string[];
+  };
   askAi?: AskAiConfig;
   askContext?: AskContext;
+  uiCopy: UiCopy;
 };
 
 type ModalTab = "search" | "ask";
 
-type UiCopy = {
-  searchPlaceholder: string;
-  askPlaceholder: string;
-  noSearchResults: string;
-  noAnswerYet: string;
-  sourcesTitle: string;
-  examplesTitle: string;
-  followupsTitle: string;
-  retrievingSources: string;
-  askButton: string;
-  askTab: string;
-  searchTab: string;
-  searchSection: string;
-  pageScope: string;
-  sectionScope: string;
-  siteScope: string;
-  copyAnswer: string;
-  copiedAnswer: string;
-  askError: string;
-  askTimeout: string;
-  showErrorDetails: string;
-  hideErrorDetails: string;
-  copyErrorDetails: string;
-  copiedErrorDetails: string;
-  assistantGreeting: string;
-  assistantIntro: string;
-  assistantPrompt: string;
-  thinking: string;
+type RankedSearchResult = {
+  title: string;
+  href: string;
+  section?: string;
+  snippet?: string;
+  score: number;
 };
 
-const COPY_FEEDBACK_MS = 1200;
-const ERROR_SUMMARY_MAX_LENGTH = 140;
-
-type AskUiError = {
-  summary: string;
-  detail: string;
-};
-
-const EN_COPY: UiCopy = {
-  searchPlaceholder: "Search documentation...",
-  askPlaceholder: "Ask about this documentation...",
-  noSearchResults: "No results",
-  noAnswerYet: "Ask a question to get a cited answer.",
-  sourcesTitle: "Sources",
-  examplesTitle: "Example questions",
-  followupsTitle: "Suggested follow-ups",
-  retrievingSources: "Retrieving sources...",
-  askButton: "Ask",
-  askTab: "Ask AI",
-  searchTab: "Search",
-  searchSection: "Documentation",
-  pageScope: "Current page",
-  sectionScope: "Current section",
-  siteScope: "Entire site",
-  copyAnswer: "Copy answer with citations",
-  copiedAnswer: "Copied",
-  askError: "Ask AI failed. Please try again.",
-  askTimeout: "Ask AI request timed out.",
-  showErrorDetails: "Show details",
-  hideErrorDetails: "Hide details",
-  copyErrorDetails: "Copy full error",
-  copiedErrorDetails: "Copied",
-  assistantGreeting: "Hi!",
-  assistantIntro:
-    "I'm an AI assistant trained on this documentation and related pages.",
-  assistantPrompt: "Ask me anything about this page or the docs.",
-  thinking: "Thinking...",
-};
-
-const CN_COPY: UiCopy = {
-  searchPlaceholder: "搜索文档...",
-  askPlaceholder: "基于文档提问...",
-  noSearchResults: "没有结果",
-  noAnswerYet: "输入问题后可获得带引用的答案。",
-  sourcesTitle: "来源",
-  examplesTitle: "示例问题",
-  followupsTitle: "推荐追问",
-  retrievingSources: "正在检索来源...",
-  askButton: "提问",
-  askTab: "Ask AI",
-  searchTab: "Search",
-  searchSection: "文档",
-  pageScope: "当前页",
-  sectionScope: "当前分组",
-  siteScope: "全站",
-  copyAnswer: "复制回答（含引用）",
-  copiedAnswer: "已复制",
-  askError: "Ask AI 调用失败，请稍后重试。",
-  askTimeout: "Ask AI 请求超时。",
-  showErrorDetails: "展开详情",
-  hideErrorDetails: "收起详情",
-  copyErrorDetails: "复制完整报错",
-  copiedErrorDetails: "已复制",
-  assistantGreeting: "你好！",
-  assistantIntro: "我是基于当前文档训练的 AI 助手，可以按证据回答问题。",
-  assistantPrompt: "你可以直接提问当前页或全站内容。",
-  thinking: "思考中...",
-};
+const DEFAULT_MANIFEST_PATH = "/typematter/search/manifest.json";
+const DEFAULT_TOP_RESULTS = 10;
 
 function isModifiedKey(event: KeyboardEvent) {
   return event.metaKey || event.ctrlKey || event.altKey || event.shiftKey;
+}
+
+function normalizeForSearch(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]+/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function tokenizeForSearch(value: string) {
+  const normalized = normalizeForSearch(value);
+  if (!normalized) {
+    return [];
+  }
+
+  const tokens: string[] = [];
+  const latin = normalized.match(/[a-z0-9]+/g) ?? [];
+  tokens.push(...latin);
+
+  const cjkSequences =
+    normalized.match(/[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]+/gu) ?? [];
+  cjkSequences.forEach((seq) => {
+    const chars = Array.from(seq);
+    chars.forEach((char) => tokens.push(char));
+    for (let i = 0; i < chars.length - 1; i += 1) {
+      tokens.push(`${chars[i]}${chars[i + 1]}`);
+    }
+  });
+
+  return Array.from(new Set(tokens.filter((token) => token.length > 0)));
+}
+
+function hashToken(token: string) {
+  let hash = 2166136261;
+  for (let i = 0; i < token.length; i += 1) {
+    hash ^= token.charCodeAt(i);
+    hash +=
+      (hash << 1) + (hash << 4) + (hash << 7) + (hash << 8) + (hash << 24);
+  }
+  return Math.abs(hash >>> 0);
+}
+
+function bucketForToken(token: string, bucketCount: number) {
+  return hashToken(token) % bucketCount;
 }
 
 function buildSnippet(content: string | undefined, query: string) {
@@ -156,7 +115,7 @@ function buildSnippet(content: string | undefined, query: string) {
   }
   const q = query.trim().toLowerCase();
   if (!q) {
-    return clean.slice(0, 120) + (clean.length > 120 ? "..." : "");
+    return clean.slice(0, 140) + (clean.length > 140 ? "..." : "");
   }
   const tokens = q.split(/\s+/).filter(Boolean);
   const lower = clean.toLowerCase();
@@ -169,10 +128,10 @@ function buildSnippet(content: string | undefined, query: string) {
     }
   }
   if (index === -1) {
-    return clean.slice(0, 120) + (clean.length > 120 ? "..." : "");
+    return clean.slice(0, 140) + (clean.length > 140 ? "..." : "");
   }
-  const start = Math.max(0, index - 40);
-  const end = Math.min(clean.length, index + 80);
+  const start = Math.max(0, index - 50);
+  const end = Math.min(clean.length, index + 90);
   let snippet = clean.slice(start, end).trim();
   if (start > 0) {
     snippet = `...${snippet}`;
@@ -208,216 +167,165 @@ function highlightText(text: string, query: string) {
   );
 }
 
-function toBooleanLanguageCN(language: string | undefined) {
-  if (!language) {
-    return false;
-  }
-  const normalized = language.toLowerCase();
-  return normalized.startsWith("cn") || normalized.startsWith("zh");
+function toPostingValue(posting: SearchPosting, key: "t" | "h" | "s" | "g" | "b") {
+  return posting[key] ?? 0;
 }
 
-function resolveAskEndpoint(endpoint: string) {
-  const normalized = endpoint.trim().replace(/\/+$/, "");
-  if (!normalized) {
-    return "";
+function resolveManifestLanguage(manifest: SearchManifest, language: string) {
+  if (manifest.languages.includes(language)) {
+    return language;
   }
-  return normalized.endsWith("/v1/ask") ? normalized : `${normalized}/v1/ask`;
+  if (manifest.languages.length > 0) {
+    return manifest.languages[0];
+  }
+  return language;
 }
 
-function safeParseJson<T>(value: string) {
-  try {
-    return JSON.parse(value) as T;
-  } catch {
-    return null;
+function scorePhraseContinuity(text: string, tokens: string[]) {
+  if (tokens.length < 2 || !text) {
+    return 0;
   }
+
+  let bonus = 0;
+  for (let i = 0; i < tokens.length - 1; i += 1) {
+    const withSpace = `${tokens[i]} ${tokens[i + 1]}`;
+    const compact = `${tokens[i]}${tokens[i + 1]}`;
+    if (text.includes(withSpace)) {
+      bonus += 34;
+      continue;
+    }
+    if (text.includes(compact)) {
+      bonus += 26;
+    }
+  }
+  return bonus;
 }
 
-function toErrorSummary(message: string, fallback: string) {
-  const normalized = message.replace(/\s+/g, " ").trim();
-  if (!normalized) {
-    return fallback;
-  }
-  if (normalized.length <= ERROR_SUMMARY_MAX_LENGTH) {
-    return normalized;
-  }
-  return `${normalized.slice(0, ERROR_SUMMARY_MAX_LENGTH - 3)}...`;
-}
-
-function processSseChunk(
-  rawChunk: string,
-  handlers: {
-    onSources: (sources: AskSource[]) => void;
-    onDelta: (delta: string) => void;
-    onDone: (payload: AskDonePayload) => void;
-    onError: (message: string) => void;
-  }
+function rankResults(
+  docs: SearchDocRecord[],
+  accumulators: Map<number, { matched: Set<string>; posting: SearchPosting }>,
+  query: string,
+  tokens: string[]
 ) {
-  const blocks = rawChunk.split(/\n\n+/).filter((block) => block.trim().length > 0);
-  blocks.forEach((block) => {
-    const lines = block.split(/\r?\n/);
-    let eventName = "message";
-    const payloadLines: string[] = [];
-    lines.forEach((line) => {
-      if (line.startsWith("event:")) {
-        eventName = line.slice("event:".length).trim();
-        return;
+  const normalizedQuery = normalizeForSearch(query);
+  const docsById = new Map(docs.map((doc) => [doc.id, doc]));
+
+  return Array.from(accumulators.entries())
+    .map<RankedSearchResult | null>(([docId, accumulator]) => {
+      const doc = docsById.get(docId);
+      if (!doc) {
+        return null;
       }
-      if (line.startsWith("data:")) {
-        payloadLines.push(line.slice("data:".length).trimStart());
+
+      const posting = accumulator.posting;
+      const titleWeight = toPostingValue(posting, "t") * 160;
+      const headingWeight = toPostingValue(posting, "h") * 70;
+      const tagsWeight = toPostingValue(posting, "g") * 48;
+      const sectionWeight = toPostingValue(posting, "s") * 36;
+      const bodyWeight = Math.min(12, toPostingValue(posting, "b")) * 8;
+
+      let score = titleWeight + headingWeight + tagsWeight + sectionWeight + bodyWeight;
+      if (normalizedQuery && doc.titleNormalized === normalizedQuery) {
+        score += 1200;
+      } else if (normalizedQuery && doc.titleNormalized.startsWith(normalizedQuery)) {
+        score += 760;
       }
+
+      const titleTokenCoverage =
+        tokens.length === 0
+          ? 0
+          : tokens.filter((token) => doc.titleNormalized.includes(token)).length /
+            tokens.length;
+      score += titleTokenCoverage * 380;
+
+      if (normalizedQuery && doc.headingNormalized.includes(normalizedQuery)) {
+        score += 260;
+      }
+
+      if (normalizedQuery && doc.searchNormalized.includes(normalizedQuery)) {
+        score += 200;
+      }
+
+      const matchedCoverage =
+        tokens.length === 0 ? 0 : accumulator.matched.size / tokens.length;
+      score += matchedCoverage * 260;
+      score += scorePhraseContinuity(doc.searchNormalized, tokens);
+
+      return {
+        title: doc.title,
+        href: doc.href,
+        section: doc.section,
+        snippet: doc.snippet,
+        score,
+      } satisfies RankedSearchResult;
+    })
+    .filter((item): item is RankedSearchResult => item !== null)
+    .sort((a, b) => {
+      if (b.score !== a.score) {
+        return b.score - a.score;
+      }
+      if (a.title !== b.title) {
+        return a.title.localeCompare(b.title);
+      }
+      return a.href.localeCompare(b.href);
     });
-    const payloadText = payloadLines.join("\n").trim();
-    if (!payloadText) {
-      return;
-    }
-
-    if (eventName === "sources") {
-      const parsed = safeParseJson<AskSource[]>(payloadText);
-      if (Array.isArray(parsed)) {
-        handlers.onSources(parsed);
-      }
-      return;
-    }
-
-    if (eventName === "delta") {
-      const parsed = safeParseJson<{ delta?: string; text?: string }>(payloadText);
-      const delta = parsed?.delta ?? parsed?.text ?? payloadText;
-      if (delta) {
-        handlers.onDelta(delta);
-      }
-      return;
-    }
-
-    if (eventName === "done") {
-      const parsed = safeParseJson<AskDonePayload>(payloadText);
-      handlers.onDone(parsed ?? {});
-      return;
-    }
-
-    if (eventName === "error") {
-      const parsed = safeParseJson<{ message?: string }>(payloadText);
-      handlers.onError(parsed?.message ?? payloadText);
-    }
-  });
 }
 
-function buildSourceHref(source: AskSource) {
-  const anchor = source.anchor?.trim() || "top";
-  if (source.href.includes("#")) {
-    return source.href;
-  }
-  return `${source.href}#${anchor}`;
-}
-
-function normalizeSources(sources: AskSource[]) {
-  return sources
-    .filter((source) => source && source.href && source.title)
-    .map((source, index) => ({
-      id: source.id || `source-${index + 1}`,
-      title: source.title,
-      href: source.href,
-      anchor: source.anchor || "top",
-      snippet: source.snippet || "",
-      score: source.score,
-    }));
-}
-
-function isExternalHref(href: string) {
-  return /^https?:\/\//i.test(href);
-}
-
-export default function SearchModal({ items, askAi, askContext }: SearchModalProps) {
+export default function SearchModal({
+  standardSearch,
+  askAi,
+  askContext,
+  uiCopy,
+}: SearchModalProps) {
   const [open, setOpen] = useState(false);
   const [visible, setVisible] = useState(false);
   const [tab, setTab] = useState<ModalTab>("search");
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
-  const [askQuestion, setAskQuestion] = useState("");
-  const [lastAskedQuestion, setLastAskedQuestion] = useState("");
-  const [askScope, setAskScope] = useState<AskScope>(askAi?.defaultScope ?? "page");
-  const [askLoading, setAskLoading] = useState(false);
-  const [askAnswer, setAskAnswer] = useState("");
-  const [askSources, setAskSources] = useState<AskSource[]>([]);
-  const [askFollowups, setAskFollowups] = useState<string[]>([]);
-  const [askError, setAskError] = useState<AskUiError | null>(null);
-  const [askErrorExpanded, setAskErrorExpanded] = useState(false);
-  const [askErrorCopied, setAskErrorCopied] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [sessionKey, setSessionKey] = useState(0);
+  const [askMounted, setAskMounted] = useState(false);
+  const [manifest, setManifest] = useState<SearchManifest | null>(null);
+  const [manifestLanguage, setManifestLanguage] = useState<string>("");
+  const [docs, setDocs] = useState<SearchDocRecord[]>([]);
+  const [baseLoading, setBaseLoading] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [results, setResults] = useState<RankedSearchResult[]>([]);
+
   const searchInputRef = useRef<HTMLInputElement | null>(null);
-  const askInputRef = useRef<HTMLInputElement | null>(null);
-  const abortRef = useRef<AbortController | null>(null);
-  const copyTimerRef = useRef<number | null>(null);
-  const errorCopyTimerRef = useRef<number | null>(null);
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+
   const askEnabled = Boolean(askAi?.enabled && askAi.endpoint && askContext);
-  const copy = toBooleanLanguageCN(askContext?.language) ? CN_COPY : EN_COPY;
-  const followupLimit = askAi?.followupLimit ?? 3;
-  const askEndpoint = askAi?.endpoint ? resolveAskEndpoint(askAi.endpoint) : "";
-  const hasConversation =
-    lastAskedQuestion.length > 0 || askLoading || askAnswer.length > 0 || Boolean(askError);
-  const isAskExpanded = askEnabled && tab === "ask" && hasConversation;
+  const allowedRoutes = standardSearch.allowedRoutes ?? [];
+  const allowedRoutesSet = useMemo(() => new Set(allowedRoutes), [allowedRoutes]);
+  const manifestPath = standardSearch.manifestPath ?? DEFAULT_MANIFEST_PATH;
+  const requestedLanguage = standardSearch.language;
 
-  const results = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) {
-      return items.slice(0, 8);
-    }
-    const tokens = q.split(/\s+/).filter(Boolean);
-    return items.filter((item) => {
-      const title = item.title.toLowerCase();
-      const section = item.section?.toLowerCase() ?? "";
-      const content = item.content?.toLowerCase() ?? "";
-      return tokens.every(
-        (token) =>
-          title.includes(token) ||
-          section.includes(token) ||
-          content.includes(token)
-      );
-    });
-  }, [items, query]);
+  const manifestCacheRef = useRef(new Map<string, SearchManifest>());
+  const docsCacheRef = useRef(new Map<string, SearchDocRecord[]>());
+  const shardCacheRef = useRef(
+    new Map<string, SearchBucketFile | Promise<SearchBucketFile>>()
+  );
 
-  const askExamples = useMemo(() => {
-    if (askAi?.examples && askAi.examples.length > 0) {
-      return askAi.examples.slice(0, 4);
+  const filteredDocs = useMemo(() => {
+    if (allowedRoutesSet.size === 0) {
+      return docs;
     }
-    return toBooleanLanguageCN(askContext?.language)
-      ? [
-          "这个页面的核心结论是什么？",
-          "给我一个最短可执行步骤。",
-          "有哪些常见错误与排查方式？",
-        ]
-      : [
-          "What are the key takeaways from this page?",
-          "Give me the shortest actionable steps.",
-          "What common mistakes should I avoid?",
-        ];
-  }, [askAi?.examples, askContext?.language]);
+    return docs.filter((doc) => allowedRoutesSet.has(doc.href));
+  }, [docs, allowedRoutesSet]);
 
-  function applyAskError(
-    message: string,
-    debugContext?: Record<string, unknown>
-  ) {
-    const detailSections = [message || copy.askError];
-    if (debugContext) {
-      detailSections.push(
-        "",
-        "Debug context:",
-        JSON.stringify(debugContext, null, 2)
-      );
-    }
-    setAskError({
-      summary: toErrorSummary(message || copy.askError, copy.askError),
-      detail: detailSections.join("\n"),
-    });
-    setAskErrorExpanded(false);
-    setAskErrorCopied(false);
-    if (errorCopyTimerRef.current) {
-      window.clearTimeout(errorCopyTimerRef.current);
-      errorCopyTimerRef.current = null;
-    }
-  }
+  useEffect(() => {
+    setManifest(null);
+    setManifestLanguage("");
+    setDocs([]);
+    setResults([]);
+    setSearchError(null);
+    setBaseLoading(false);
+    setSearchLoading(false);
+    shardCacheRef.current.clear();
+  }, [manifestPath, requestedLanguage]);
 
   useEffect(() => {
     const handleKeydown = (event: KeyboardEvent) => {
@@ -433,7 +341,6 @@ export default function SearchModal({ items, askAi, askContext }: SearchModalPro
 
       if (event.key === "Escape") {
         event.preventDefault();
-        abortRef.current?.abort();
         setOpen(false);
       }
     };
@@ -466,24 +373,14 @@ export default function SearchModal({ items, askAi, askContext }: SearchModalPro
   useEffect(() => {
     if (!open) {
       setVisible(false);
-      abortRef.current?.abort();
+      setAskMounted(false);
       return;
     }
 
     setTab("search");
     setQuery("");
     setActiveIndex(0);
-    setAskQuestion("");
-    setLastAskedQuestion("");
-    setAskScope(askAi?.defaultScope ?? "page");
-    setAskLoading(false);
-    setAskAnswer("");
-    setAskSources([]);
-    setAskFollowups([]);
-    setAskError(null);
-    setAskErrorExpanded(false);
-    setAskErrorCopied(false);
-    setCopied(false);
+    setSessionKey((prev) => prev + 1);
     document.body.classList.add("search-open");
     const focusInput = () => {
       searchInputRef.current?.focus({ preventScroll: true });
@@ -498,7 +395,13 @@ export default function SearchModal({ items, askAi, askContext }: SearchModalPro
       document.body.classList.remove("search-open");
       window.clearTimeout(focusTimer);
     };
-  }, [open, askAi?.defaultScope]);
+  }, [open]);
+
+  useEffect(() => {
+    if (open && askEnabled && tab === "ask") {
+      setAskMounted(true);
+    }
+  }, [open, askEnabled, tab]);
 
   useEffect(() => {
     if (!open) {
@@ -506,7 +409,6 @@ export default function SearchModal({ items, askAi, askContext }: SearchModalPro
     }
 
     if (tab === "ask" && askEnabled) {
-      askInputRef.current?.focus({ preventScroll: true });
       return;
     }
 
@@ -555,7 +457,6 @@ export default function SearchModal({ items, askAi, askContext }: SearchModalPro
         event.preventDefault();
         const target = results[activeIndex];
         if (target) {
-          abortRef.current?.abort();
           setOpen(false);
           router.push(target.href);
         }
@@ -570,191 +471,218 @@ export default function SearchModal({ items, askAi, askContext }: SearchModalPro
 
   useEffect(() => {
     if (open) {
-      abortRef.current?.abort();
       setOpen(false);
     }
   }, [pathname, searchParams?.toString()]);
 
   useEffect(() => {
-    return () => {
-      abortRef.current?.abort();
-      if (copyTimerRef.current) {
-        window.clearTimeout(copyTimerRef.current);
-      }
-      if (errorCopyTimerRef.current) {
-        window.clearTimeout(errorCopyTimerRef.current);
-      }
-    };
-  }, []);
-
-  async function submitAsk(nextQuestion?: string) {
-    if (!askEnabled || !askContext || !askEndpoint || askLoading) {
+    if (!open) {
       return;
     }
+    let cancelled = false;
 
-    const question = (nextQuestion ?? askQuestion).trim();
-    if (!question) {
-      return;
-    }
+    const loadBase = async () => {
+      setBaseLoading(true);
+      setSearchError(null);
 
-    setAskQuestion(question);
-    setLastAskedQuestion(question);
-    setAskLoading(true);
-    setAskError(null);
-    setAskErrorExpanded(false);
-    setAskErrorCopied(false);
-    setAskAnswer("");
-    setAskSources([]);
-    setAskFollowups([]);
+      try {
+        let manifestData = manifestCacheRef.current.get(manifestPath);
+        if (!manifestData) {
+          const response = await fetch(manifestPath, { cache: "force-cache" });
+          if (!response.ok) {
+            throw new Error(`manifest request failed: ${response.status}`);
+          }
+          manifestData = (await response.json()) as SearchManifest;
+          manifestCacheRef.current.set(manifestPath, manifestData);
+        }
 
-    const payload: AskRequest = {
-      question,
-      language: askContext.language,
-      scope: askScope,
-      currentRoute: askContext.currentRoute,
-      currentSection: askContext.currentSection,
-      siteContext: {
-        title: askContext.title,
-      },
-    };
-    const debugContext = {
-      endpoint: askEndpoint,
-      request: payload,
-      timestamp: new Date().toISOString(),
-    };
-
-    const controller = new AbortController();
-    abortRef.current?.abort();
-    abortRef.current = controller;
-    const timeout = window.setTimeout(() => controller.abort(), askAi?.timeoutMs ?? 25_000);
-
-    try {
-      const response = await fetch(askEndpoint, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "text/event-stream",
-        },
-        body: JSON.stringify(payload),
-        signal: controller.signal,
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text().catch(() => "");
-        const responseMessage = errorText || copy.askError;
-        throw new Error(
-          `HTTP ${response.status} ${response.statusText}\n${responseMessage}`
+        const resolvedLanguage = resolveManifestLanguage(
+          manifestData,
+          requestedLanguage
         );
-      }
-
-      if (!response.body) {
-        throw new Error(copy.askError);
-      }
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffered = "";
-
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) {
-          break;
+        const docsPath = manifestData.docs[resolvedLanguage];
+        if (!docsPath) {
+          throw new Error(`missing docs path for language ${resolvedLanguage}`);
         }
-        if (!value) {
-          continue;
+
+        const docsKey = `${manifestData.contentHash}:${resolvedLanguage}`;
+        let docsData = docsCacheRef.current.get(docsKey);
+        if (!docsData) {
+          const response = await fetch(docsPath, { cache: "force-cache" });
+          if (!response.ok) {
+            throw new Error(`docs request failed: ${response.status}`);
+          }
+          docsData = (await response.json()) as SearchDocRecord[];
+          docsCacheRef.current.set(docsKey, docsData);
         }
-        buffered += decoder.decode(value, { stream: true });
-        const boundary = buffered.lastIndexOf("\n\n");
-        if (boundary === -1) {
-          continue;
+
+        if (!cancelled) {
+          setManifest(manifestData);
+          setManifestLanguage(resolvedLanguage);
+          setDocs(docsData);
         }
-        const chunk = buffered.slice(0, boundary);
-        buffered = buffered.slice(boundary + 2);
-        processSseChunk(chunk, {
-          onSources: (sources) => setAskSources(normalizeSources(sources)),
-          onDelta: (delta) => setAskAnswer((prev) => prev + delta),
-          onDone: (donePayload) =>
-            setAskFollowups((donePayload.followups ?? []).slice(0, followupLimit)),
-          onError: (message) => applyAskError(message || copy.askError, debugContext),
-        });
+      } catch (error) {
+        if (!cancelled) {
+          setSearchError(uiCopy.search.searchUnavailable);
+          setManifest(null);
+          setManifestLanguage("");
+          setDocs([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setBaseLoading(false);
+        }
       }
+    };
 
-      if (buffered.trim().length > 0) {
-        processSseChunk(buffered, {
-          onSources: (sources) => setAskSources(normalizeSources(sources)),
-          onDelta: (delta) => setAskAnswer((prev) => prev + delta),
-          onDone: (donePayload) =>
-            setAskFollowups((donePayload.followups ?? []).slice(0, followupLimit)),
-          onError: (message) => applyAskError(message || copy.askError, debugContext),
-        });
-      }
-    } catch (error) {
-      if (controller.signal.aborted) {
-        applyAskError(copy.askTimeout, debugContext);
-      } else {
-        const message =
-          error instanceof Error && error.message ? error.message : copy.askError;
-        applyAskError(message, debugContext);
-      }
-    } finally {
-      window.clearTimeout(timeout);
-      if (abortRef.current === controller) {
-        abortRef.current = null;
-      }
-      setAskLoading(false);
-    }
-  }
+    void loadBase();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, manifestPath, requestedLanguage, uiCopy.search.searchUnavailable]);
 
-  function handleAskSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    void submitAsk();
-  }
-
-  async function handleCopyAnswer() {
-    if (!askAnswer.trim()) {
-      return;
-    }
-    const composed = [
-      askAnswer.trim(),
-      "",
-      copy.sourcesTitle,
-      ...askSources.map(
-        (source, index) => `[S${index + 1}] ${source.title} - ${buildSourceHref(source)}`
-      ),
-    ].join("\n");
-
-    try {
-      await navigator.clipboard.writeText(composed);
-      setCopied(true);
-      if (copyTimerRef.current) {
-        window.clearTimeout(copyTimerRef.current);
-      }
-      copyTimerRef.current = window.setTimeout(() => {
-        setCopied(false);
-      }, COPY_FEEDBACK_MS);
-    } catch {
-      setCopied(false);
-    }
-  }
-
-  async function handleCopyErrorDetail() {
-    if (!askError?.detail) {
+  useEffect(() => {
+    if (!open || tab !== "search") {
       return;
     }
 
-    try {
-      await navigator.clipboard.writeText(askError.detail);
-      setAskErrorCopied(true);
-      if (errorCopyTimerRef.current) {
-        window.clearTimeout(errorCopyTimerRef.current);
-      }
-      errorCopyTimerRef.current = window.setTimeout(() => {
-        setAskErrorCopied(false);
-      }, COPY_FEEDBACK_MS);
-    } catch {
-      setAskErrorCopied(false);
+    const trimmed = query.trim();
+    if (!manifest || filteredDocs.length === 0) {
+      setResults([]);
+      return;
     }
-  }
+
+    if (!trimmed) {
+      const seed = filteredDocs
+        .slice()
+        .sort((a, b) => a.title.localeCompare(b.title))
+        .slice(0, DEFAULT_TOP_RESULTS)
+        .map((doc) => ({
+          title: doc.title,
+          href: doc.href,
+          section: doc.section,
+          snippet: doc.snippet,
+          score: 0,
+        }));
+      setResults(seed);
+      setSearchLoading(false);
+      return;
+    }
+
+    const tokens = tokenizeForSearch(trimmed);
+    if (tokens.length === 0) {
+      setResults([]);
+      setSearchLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadShard = async (bucket: number) => {
+      const shardBase = manifest.shards[manifestLanguage];
+      if (!shardBase) {
+        throw new Error(`missing shard base for language ${manifestLanguage}`);
+      }
+      const cacheKey = `${manifest.contentHash}:${manifestLanguage}:${bucket}`;
+      const cached = shardCacheRef.current.get(cacheKey);
+      if (cached) {
+        if (cached instanceof Promise) {
+          return cached;
+        }
+        return cached;
+      }
+
+      const request = fetch(`${shardBase.replace(/\/$/, "")}/${bucket}.json`, {
+        cache: "force-cache",
+      }).then(async (response) => {
+        if (!response.ok) {
+          throw new Error(`shard request failed: ${response.status}`);
+        }
+        return (await response.json()) as SearchBucketFile;
+      });
+      shardCacheRef.current.set(cacheKey, request);
+      try {
+        const resolved = await request;
+        shardCacheRef.current.set(cacheKey, resolved);
+        return resolved;
+      } catch (error) {
+        shardCacheRef.current.delete(cacheKey);
+        throw error;
+      }
+    };
+
+    const runSearch = async () => {
+      setSearchLoading(true);
+      setSearchError(null);
+
+      try {
+        const bucketIds = Array.from(
+          new Set(tokens.map((token) => bucketForToken(token, manifest.buckets)))
+        );
+        const shardEntries = await Promise.all(
+          bucketIds.map(async (bucket) => [bucket, await loadShard(bucket)] as const)
+        );
+        const shardByBucket = new Map<number, SearchBucketFile>(shardEntries);
+        const accumulators = new Map<number, { matched: Set<string>; posting: SearchPosting }>();
+
+        tokens.forEach((token) => {
+          const bucket = bucketForToken(token, manifest.buckets);
+          const shard = shardByBucket.get(bucket);
+          const postings = shard?.tokens[token] ?? [];
+
+          postings.forEach((posting) => {
+            const accumulator = accumulators.get(posting.id) ?? {
+              matched: new Set<string>(),
+              posting: { id: posting.id },
+            };
+            accumulator.matched.add(token);
+            accumulator.posting.t =
+              (accumulator.posting.t ?? 0) + (posting.t ?? 0);
+            accumulator.posting.h =
+              (accumulator.posting.h ?? 0) + (posting.h ?? 0);
+            accumulator.posting.s =
+              (accumulator.posting.s ?? 0) + (posting.s ?? 0);
+            accumulator.posting.g =
+              (accumulator.posting.g ?? 0) + (posting.g ?? 0);
+            accumulator.posting.b =
+              (accumulator.posting.b ?? 0) + (posting.b ?? 0);
+            accumulators.set(posting.id, accumulator);
+          });
+        });
+
+        const ranked = rankResults(filteredDocs, accumulators, trimmed, tokens);
+        const topResults = ranked.slice(0, 30);
+
+        if (!cancelled) {
+          setResults(topResults);
+          setActiveIndex(0);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setResults([]);
+          setSearchError(uiCopy.search.searchUnavailable);
+        }
+      } finally {
+        if (!cancelled) {
+          setSearchLoading(false);
+        }
+      }
+    };
+
+    void runSearch();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    open,
+    tab,
+    query,
+    manifest,
+    manifestLanguage,
+    filteredDocs,
+    uiCopy.search.searchUnavailable,
+  ]);
 
   if (!open) {
     return null;
@@ -769,16 +697,19 @@ export default function SearchModal({ items, askAi, askContext }: SearchModalPro
       <button
         type="button"
         className="search-backdrop"
-        aria-label="Close search"
+        aria-label={uiCopy.aria.closeSearch}
         onClick={() => {
-          abortRef.current?.abort();
           setOpen(false);
         }}
       />
-      <div className={`search-panel${isAskExpanded ? " is-ask-expanded" : ""}`}>
+      <div className={`search-panel${askEnabled && tab === "ask" ? " is-ask-expanded" : ""}`}>
         {askEnabled ? (
           <div className="search-tabs-row">
-            <div className="search-tabs" role="tablist" aria-label="Search modes">
+            <div
+              className="search-tabs"
+              role="tablist"
+              aria-label={uiCopy.aria.searchModes}
+            >
               <button
                 type="button"
                 role="tab"
@@ -786,7 +717,7 @@ export default function SearchModal({ items, askAi, askContext }: SearchModalPro
                 className={`search-tab${tab === "search" ? " active" : ""}`}
                 onClick={() => setTab("search")}
               >
-                {copy.searchTab}
+                {uiCopy.search.searchTab}
               </button>
               <button
                 type="button"
@@ -795,7 +726,7 @@ export default function SearchModal({ items, askAi, askContext }: SearchModalPro
                 className={`search-tab${tab === "ask" ? " active" : ""}`}
                 onClick={() => setTab("ask")}
               >
-                {copy.askTab}
+                {uiCopy.search.askTab}
               </button>
             </div>
             <span className="key-hint">ESC</span>
@@ -811,26 +742,32 @@ export default function SearchModal({ items, askAi, askContext }: SearchModalPro
               <input
                 ref={searchInputRef}
                 className="search-input"
-                placeholder={copy.searchPlaceholder}
+                placeholder={uiCopy.search.searchPlaceholder}
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 autoFocus
+                aria-label={uiCopy.aria.searchInput}
               />
               {!askEnabled ? <span className="key-hint">ESC</span> : null}
             </div>
 
             <div className="search-results">
-              <div className="search-section-label">{copy.searchSection}</div>
-              {results.length === 0 ? (
-                <div className="search-empty">{copy.noSearchResults}</div>
+              <div className="search-section-label">{uiCopy.search.searchSection}</div>
+              {baseLoading ? (
+                <div className="search-empty">{uiCopy.search.loadingSearchIndex}</div>
+              ) : searchLoading ? (
+                <div className="search-empty">{uiCopy.search.loadingSearchResults}</div>
+              ) : searchError ? (
+                <div className="search-empty">{searchError}</div>
+              ) : results.length === 0 ? (
+                <div className="search-empty">{uiCopy.search.noSearchResults}</div>
               ) : (
                 results.map((item, index) => (
                   <button
                     type="button"
-                    key={`${item.href}-${item.title}`}
+                    key={`${item.href}-${item.title}-${index}`}
                     className={`search-item${index === activeIndex ? " active" : ""}`}
                     onClick={() => {
-                      abortRef.current?.abort();
                       setOpen(false);
                       router.push(item.href);
                     }}
@@ -839,9 +776,9 @@ export default function SearchModal({ items, askAi, askContext }: SearchModalPro
                       <span className="search-item-title">
                         {highlightText(item.title, query)}
                       </span>
-                      {item.content ? (
+                      {item.snippet ? (
                         <span className="search-item-snippet">
-                          {highlightText(buildSnippet(item.content, query), query)}
+                          {highlightText(buildSnippet(item.snippet, query), query)}
                         </span>
                       ) : null}
                     </span>
@@ -853,245 +790,18 @@ export default function SearchModal({ items, askAi, askContext }: SearchModalPro
               )}
             </div>
           </>
-        ) : (
-          <div className="ask-panel">
-            <div className="ask-thread">
-              <div className="ask-message ask-message-assistant ask-intro-message">
-                <span className="ask-avatar" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" className="icon">
-                    <path d="M4 5.5A1.5 1.5 0 015.5 4H11v16H5.5A1.5 1.5 0 014 18.5v-13zM13 4h5.5A1.5 1.5 0 0120 5.5v13a1.5 1.5 0 01-1.5 1.5H13V4z" />
-                  </svg>
-                </span>
-                <div className="ask-message-body">
-                  <p className="ask-intro-line">{copy.assistantGreeting}</p>
-                  <p className="ask-intro-line">{copy.assistantIntro}</p>
-                  <p className="ask-intro-line ask-intro-prompt">
-                    {copy.assistantPrompt}
-                  </p>
-                </div>
-              </div>
+        ) : null}
 
-              {lastAskedQuestion ? (
-                <div className="ask-message ask-message-user">
-                  <span className="ask-avatar" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" className="icon">
-                      <path d="M12 12a4 4 0 100-8 4 4 0 000 8zM4 20c0-3.314 3.582-6 8-6s8 2.686 8 6" />
-                    </svg>
-                  </span>
-                  <div className="ask-message-body">
-                    <p className="ask-user-text">{lastAskedQuestion}</p>
-                  </div>
-                </div>
-              ) : null}
-
-              {hasConversation ? (
-                <div className="ask-message ask-message-assistant ask-response-message">
-                  <span className="ask-avatar" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" className="icon">
-                      <path d="M4 5.5A1.5 1.5 0 015.5 4H11v16H5.5A1.5 1.5 0 014 18.5v-13zM13 4h5.5A1.5 1.5 0 0120 5.5v13a1.5 1.5 0 01-1.5 1.5H13V4z" />
-                    </svg>
-                  </span>
-                  <div className="ask-message-body">
-                    {askError ? (
-                      <div className="ask-error-panel">
-                        <div className="ask-error">{askError.summary}</div>
-                        <div className="ask-error-actions">
-                          <button
-                            type="button"
-                            className="ask-error-action"
-                            onClick={() => setAskErrorExpanded((prev) => !prev)}
-                          >
-                            {askErrorExpanded
-                              ? copy.hideErrorDetails
-                              : copy.showErrorDetails}
-                          </button>
-                          <button
-                            type="button"
-                            className={`ask-error-action${askErrorCopied ? " copied" : ""}`}
-                            onClick={handleCopyErrorDetail}
-                          >
-                            {askErrorCopied
-                              ? copy.copiedErrorDetails
-                              : copy.copyErrorDetails}
-                          </button>
-                        </div>
-                        {askErrorExpanded ? (
-                          <pre className="ask-error-detail">{askError.detail}</pre>
-                        ) : null}
-                      </div>
-                    ) : askAnswer ? (
-                      <div className="ask-answer-text">
-                        <ReactMarkdown
-                          remarkPlugins={[remarkGfm]}
-                          components={{
-                            a: ({ href, ...props }) => (
-                              <a
-                                {...props}
-                                href={href}
-                                target={href && isExternalHref(href) ? "_blank" : undefined}
-                                rel={href && isExternalHref(href) ? "noreferrer" : undefined}
-                              />
-                            ),
-                          }}
-                        >
-                          {askAnswer}
-                        </ReactMarkdown>
-                      </div>
-                    ) : askLoading ? (
-                      <div className="ask-thinking">{copy.thinking}</div>
-                    ) : (
-                      <div className="ask-empty">{copy.noAnswerYet}</div>
-                    )}
-
-                    {askLoading ? (
-                      <div className="ask-inline-status">{copy.retrievingSources}</div>
-                    ) : null}
-
-                    {askSources.length > 0 ? (
-                      <div className="ask-sources">
-                        <div className="search-section-label">{copy.sourcesTitle}</div>
-                        <div className="ask-source-list">
-                          {askSources.map((source, index) => (
-                            <a
-                              key={`${source.id}-${index}`}
-                              className="ask-source-card"
-                              href={buildSourceHref(source)}
-                            >
-                              <span className="ask-source-title">
-                                [S{index + 1}] {source.title}
-                              </span>
-                              <span className="ask-source-snippet">{source.snippet}</span>
-                            </a>
-                          ))}
-                        </div>
-                      </div>
-                    ) : null}
-
-                    {askFollowups.length > 0 ? (
-                      <div className="ask-chip-group">
-                        <div className="search-section-label">{copy.followupsTitle}</div>
-                        <div className="ask-chip-list">
-                          {askFollowups.map((followup) => (
-                            <button
-                              type="button"
-                              key={followup}
-                              className="ask-chip"
-                              onClick={() => {
-                                setAskQuestion(followup);
-                                void submitAsk(followup);
-                              }}
-                            >
-                              {followup}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    ) : null}
-
-                    {askAnswer ? (
-                      <button
-                        type="button"
-                        className={`ask-copy${copied ? " copied" : ""}`}
-                        onClick={handleCopyAnswer}
-                      >
-                        {copied ? copy.copiedAnswer : copy.copyAnswer}
-                      </button>
-                    ) : null}
-                  </div>
-                </div>
-              ) : (
-                <div className="ask-chip-group ask-example-group">
-                  <div className="search-section-label">{copy.examplesTitle}</div>
-                  <div className="ask-chip-list">
-                    {askExamples.map((example) => (
-                      <button
-                        type="button"
-                        key={example}
-                        className="ask-chip"
-                        onClick={() => {
-                          setAskQuestion(example);
-                          void submitAsk(example);
-                        }}
-                      >
-                        {example}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="ask-footer">
-              {hasConversation ? (
-                <div className="ask-chip-group ask-example-group">
-                  <div className="search-section-label">{copy.examplesTitle}</div>
-                  <div className="ask-chip-list">
-                    {askExamples.map((example) => (
-                      <button
-                        type="button"
-                        key={`footer-${example}`}
-                        className="ask-chip"
-                        onClick={() => {
-                          setAskQuestion(example);
-                          void submitAsk(example);
-                        }}
-                      >
-                        {example}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-
-              <form className="ask-form" onSubmit={handleAskSubmit}>
-                <div className="search-input-row ask-input-row">
-                  <svg viewBox="0 0 24 24" aria-hidden="true" className="icon">
-                    <path d="M21 12a9 9 0 11-4.2-7.56M8 11h8M8 15h5" />
-                  </svg>
-                  <input
-                    ref={askInputRef}
-                    className="search-input"
-                    placeholder={copy.askPlaceholder}
-                    value={askQuestion}
-                    onChange={(event) => setAskQuestion(event.target.value)}
-                    autoFocus
-                  />
-                  <button
-                    type="submit"
-                    className="ask-submit"
-                    disabled={askLoading || askQuestion.trim().length === 0}
-                  >
-                    {copy.askButton}
-                  </button>
-                </div>
-
-                <div className="ask-scope-row">
-                  <button
-                    type="button"
-                    className={`ask-scope${askScope === "page" ? " active" : ""}`}
-                    onClick={() => setAskScope("page")}
-                  >
-                    {copy.pageScope}
-                  </button>
-                  <button
-                    type="button"
-                    className={`ask-scope${askScope === "section" ? " active" : ""}`}
-                    onClick={() => setAskScope("section")}
-                  >
-                    {copy.sectionScope}
-                  </button>
-                  <button
-                    type="button"
-                    className={`ask-scope${askScope === "site" ? " active" : ""}`}
-                    onClick={() => setAskScope("site")}
-                  >
-                    {copy.siteScope}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
+        {askEnabled && askMounted ? (
+          <AskPanel
+            askAi={askAi}
+            askContext={askContext}
+            copy={uiCopy.search}
+            ariaCopy={uiCopy.aria}
+            active={tab === "ask"}
+            sessionKey={sessionKey}
+          />
+        ) : null}
       </div>
     </div>
   );

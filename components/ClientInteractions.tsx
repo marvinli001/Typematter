@@ -1,8 +1,18 @@
 "use client";
 
 import { useEffect } from "react";
+import { usePathname } from "next/navigation";
+import siteConfig from "../site.config";
+import { getUiCopy, resolveUiLanguage } from "../lib/i18n/ui-copy";
 
 export default function ClientInteractions() {
+  const pathname = usePathname();
+  const languageCodes = siteConfig.i18n?.languages.map((language) => language.code) ?? [];
+  const firstSegment = pathname?.split("/").filter(Boolean)[0];
+  const routeLanguage =
+    firstSegment && languageCodes.includes(firstSegment) ? firstSegment : undefined;
+  const copy = getUiCopy(resolveUiLanguage(routeLanguage));
+
   useEffect(() => {
     const body = document.body;
     const root = document.documentElement;
@@ -12,9 +22,9 @@ export default function ClientInteractions() {
     );
     const themeKey = "typematter-theme";
     const themeLabels: Record<string, string> = {
-      light: "Light",
-      dark: "Dark",
-      system: "System",
+      light: copy.theme.light,
+      dark: copy.theme.dark,
+      system: copy.theme.system,
     };
 
     const getSystemTheme = () =>
@@ -25,7 +35,7 @@ export default function ClientInteractions() {
       root.dataset.theme = resolved;
       root.dataset.themeMode = mode;
       if (themeLabel) {
-        themeLabel.textContent = themeLabels[mode] ?? "System";
+        themeLabel.textContent = themeLabels[mode] ?? copy.theme.system;
       }
     };
 
@@ -116,7 +126,7 @@ export default function ClientInteractions() {
         mediaQuery.removeEventListener("change", handleSystemTheme);
       }
     };
-  }, []);
+  }, [copy.theme.dark, copy.theme.light, copy.theme.system]);
 
   return null;
 }
