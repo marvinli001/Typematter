@@ -11,6 +11,18 @@ import { Annotation } from "./Annotation";
 import { Cards, Card } from "./Cards";
 import { LinkButton } from "./LinkButton";
 import { Badge } from "./Badge";
+import {
+  Endpoint,
+  ParamTable,
+  ParamField,
+  ResponseSchema,
+  SchemaField,
+} from "./ApiDocs";
+import { DoDont, DoItem, DontItem } from "./DoDont";
+import { VersionGate } from "./VersionGate";
+import { CommandGroup, Command } from "./CommandGroup";
+import { PreviewFrame } from "./PreviewFrame";
+import { Timeline, ReleaseItem } from "./Timeline";
 
 export const mdxComponents = {
   Callout,
@@ -36,5 +48,19 @@ export const mdxComponents = {
   Card,
   LinkButton,
   Badge,
+  Endpoint,
+  ParamTable,
+  ParamField,
+  ResponseSchema,
+  SchemaField,
+  DoDont,
+  DoItem,
+  DontItem,
+  VersionGate,
+  CommandGroup,
+  Command,
+  PreviewFrame,
+  Timeline,
+  ReleaseItem,
   pre: CodeBlock,
 };

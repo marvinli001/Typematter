@@ -1,0 +1,97 @@
+.command-group {
+  margin: 1.2rem 0;
+}
+
+.command-group-title {
+  margin-bottom: 0.75rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.command-group-input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.command-group-tabs {
+  display: inline-flex;
+  gap: 0.35rem;
+  padding: 0.25rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface-muted);
+}
+
+.command-group-tab {
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-soft);
+  cursor: pointer;
+}
+
+.command-group-panels {
+  margin-top: 0.7rem;
+}
+
+.command-group-panel {
+  display: none;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.command-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  padding: 0.8rem 0.9rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.command-panel-meta {
+  display: flex;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.command-platform,
+.command-description {
+  font-size: 0.78rem;
+}
+
+.command-platform {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background: var(--surface-muted);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.command-description {
+  color: var(--text-soft);
+}
+
+.command-pre {
+  margin: 0;
+  padding: 1rem 1.05rem 1.15rem;
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 0.84rem;
+  line-height: 1.65;
+  background: transparent;
+}
+
+.command-pre code {
+  white-space: pre;
+  color: var(--text);
+}

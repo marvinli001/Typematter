@@ -47,6 +47,70 @@ Validate docs only:
 npm run validate:docs
 ```
 
+## Official repo vs starter
+This repository is intended to stay as the official Typematter docs/demo site.
+
+If you want to build your own docs with Typematter, generate a clean starter project instead of continuing to write inside this repository:
+
+```bash
+npm run typematter -- init --dir ../my-docs
+cd ../my-docs
+npm install
+npm run dev
+```
+
+The generated project keeps the Typematter shell and starter content, but does not include the official Typematter docs under `content/`.
+
+## Deployment
+Typematter is configured for Next.js static export (`output: "export"`). A production build writes the site to `out/`.
+
+Recommended production flow:
+
+```bash
+cp .env.example .env.local
+npm run build
+```
+
+Key environment variables:
+
+- `TYPEMATTER_SITE_URL`: required for correct `robots.txt` and `sitemap.xml`
+- `NEXT_PUBLIC_SITE_URL`: optional mirror for the client side
+- `NEXT_PUBLIC_TYPEMATTER_ASK_AI_ENDPOINT`: optional Ask AI Worker URL
+- `NEXT_PUBLIC_TYPEMATTER_ASK_AI_TIMEOUT_MS`: optional Ask AI timeout
+
+Build output:
+
+- Static site: `out/`
+- Registry cache: `.typematter/`
+- Public search assets: `public/typematter/search/`
+
+Then deploy the `out/` directory to any static host:
+
+- Vercel
+- Cloudflare Pages
+- Nginx
+- S3 / R2 / OSS
+
+Platform notes:
+
+- `Vercel`: build command `npm run build`, output directory `out`
+- `Cloudflare Pages`: build command `npm run build`, output directory `out`
+- `Nginx / object storage`: upload the generated `out/` directory as static files
+
+Local preview after build:
+
+```bash
+npx serve out
+```
+
+`TYPEMATTER_SITE_URL` is important because it is used to emit absolute URLs in `robots.txt` and `sitemap.xml`.
+
+## Troubleshooting
+- `robots.txt` or `sitemap.xml` still shows `example.com`: `TYPEMATTER_SITE_URL` was not set at build time.
+- `npm run build` fails on orphan pages or broken links: run `npm run validate:docs` first and fix the reported docs issue.
+- You want a clean project, not the official docs content: use `npm run typematter -- init --dir ../my-docs`.
+- You want Ask AI: deploy the Worker under `integrations/cloudflare-ask-ai-worker/` and inject the public endpoint into the docs build.
+
 ## Ask AI setup
 Ask AI is disabled by default. It is enabled only when a public endpoint is configured.
 
@@ -82,6 +146,7 @@ Each page is an MDX file with frontmatter:
 - Optional: `status`, `version`, `tags`, `description`, `slug`, `pager`
 
 Navigation and hierarchy come from the folder structure and metadata, not manual sidebars.
+The official docs now include a dedicated Authoring Syntax cheat sheet at `/en/core-concepts/authoring-syntax` and `/cn/core-concepts/authoring-syntax`.
 
 ## Components
 Use semantic MDX patterns for consistent rendering. Examples include callouts, columns, diff blocks, code tabs, and feature matrices. Avoid one-off variants and keep content portable.

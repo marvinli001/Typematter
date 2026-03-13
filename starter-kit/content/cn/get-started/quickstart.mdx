@@ -1,0 +1,36 @@
+---
+title: Quickstart
+order: 2
+section: Get started
+pager: true
+---
+
+## 1. 安装依赖
+
+```bash
+npm install
+npm run dev
+```
+
+## 2. 替换示例内容
+
+删除 starter 页面内容，按你的目录结构新建 MDX 页面。
+
+```text
+content/
+  cn/
+    index.mdx
+    get-started/
+      quickstart.mdx
+  en/
+    index.mdx
+```
+
+## 3. 调整导航
+
+导航配置在 `nav.config.ts`，它只负责展示顺序，不负责创造页面。
+
+<Callout type="note" title="前提">
+每个页面至少需要 `title`、`order`、`section` 三个 frontmatter 字段。
+</Callout>
+

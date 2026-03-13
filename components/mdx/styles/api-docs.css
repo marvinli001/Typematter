@@ -1,0 +1,216 @@
+.endpoint,
+.param-table,
+.response-schema {
+  margin: 1.2rem 0;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.endpoint {
+  overflow: hidden;
+}
+
+.endpoint-header,
+.response-schema-head {
+  padding: 1rem 1.1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.endpoint-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+}
+
+.endpoint-method {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 58px;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.endpoint[data-method="GET"] .endpoint-method {
+  background: rgba(22, 163, 74, 0.14);
+  color: var(--success);
+}
+
+.endpoint[data-method="POST"] .endpoint-method {
+  background: rgba(37, 99, 235, 0.14);
+  color: var(--accent);
+}
+
+.endpoint[data-method="PUT"] .endpoint-method,
+.endpoint[data-method="PATCH"] .endpoint-method {
+  background: rgba(217, 119, 6, 0.14);
+  color: var(--warning);
+}
+
+.endpoint[data-method="DELETE"] .endpoint-method {
+  background: rgba(220, 38, 38, 0.14);
+  color: var(--danger);
+}
+
+.endpoint-path {
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+.endpoint-title,
+.param-table-title,
+.response-schema-title {
+  font-weight: 600;
+  color: var(--text);
+  margin-top: 0.75rem;
+}
+
+.endpoint-summary {
+  margin: 0.6rem 0 0;
+  color: var(--text-muted);
+}
+
+.endpoint-meta,
+.response-schema-meta {
+  display: flex;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+  margin-top: 0.75rem;
+}
+
+.endpoint-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface-muted);
+  font-size: 0.72rem;
+  color: var(--text-soft);
+}
+
+.endpoint-body,
+.schema-list {
+  padding: 1rem 1.1rem;
+}
+
+.param-table-head,
+.param-row {
+  display: grid;
+  grid-template-columns: minmax(110px, 1.1fr) minmax(110px, 1fr) 92px 92px minmax(0, 2fr);
+  gap: 0.85rem;
+  align-items: start;
+}
+
+.param-table-head {
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-soft);
+}
+
+.param-row {
+  padding: 0.9rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.param-row:last-child {
+  border-bottom: none;
+}
+
+.param-name code,
+.param-type code,
+.param-default code,
+.schema-name,
+.schema-type {
+  font-size: 0.82rem;
+}
+
+.param-required,
+.param-default {
+  color: var(--text-soft);
+  font-size: 0.84rem;
+}
+
+.param-description,
+.schema-description {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.param-description > :last-child,
+.release-body > :last-child,
+.do-dont-item-body > :last-child {
+  margin-bottom: 0;
+}
+
+.param-empty {
+  color: var(--text-soft);
+}
+
+.schema-field + .schema-field {
+  margin-top: 0.75rem;
+}
+
+.schema-row {
+  padding: 0.85rem 0.95rem;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface-muted);
+}
+
+.schema-main {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.schema-type {
+  color: var(--accent);
+}
+
+.schema-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.12rem 0.45rem;
+  border-radius: 999px;
+  background: rgba(22, 163, 74, 0.14);
+  color: var(--success);
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.schema-description {
+  margin-top: 0.45rem;
+}
+
+.schema-children {
+  margin-left: 1.2rem;
+  padding-left: 1rem;
+  border-left: 1px solid var(--border);
+  margin-top: 0.65rem;
+}
+
+@media (max-width: 820px) {
+  .param-table-head {
+    display: none;
+  }
+
+  .param-row {
+    grid-template-columns: 1fr;
+    gap: 0.45rem;
+  }
+}

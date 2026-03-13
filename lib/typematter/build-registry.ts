@@ -74,6 +74,20 @@ const COMPONENT_ALIASES: Record<string, string> = {
   linkbutton: "LinkButton",
   badge: "Badge",
   annotation: "Annotation",
+  endpoint: "Endpoint",
+  paramtable: "ParamTable",
+  paramfield: "ParamField",
+  responseschema: "ResponseSchema",
+  schemafield: "SchemaField",
+  dodont: "DoDont",
+  doitem: "DoItem",
+  dontitem: "DontItem",
+  versiongate: "VersionGate",
+  commandgroup: "CommandGroup",
+  command: "Command",
+  previewframe: "PreviewFrame",
+  timeline: "Timeline",
+  releaseitem: "ReleaseItem",
   pre: "CodeBlock",
 };
 
@@ -98,6 +112,16 @@ type BuildRegistryOptions = {
 let cachedRegistry: ContentRegistry | null = null;
 let cachedSearchIndex: SearchIndexItem[] | null = null;
 let cachedAskIndex: AskIndexItem[] | null = null;
+
+function shouldUseCache() {
+  return process.env.NODE_ENV === "production";
+}
+
+export function clearRegistryCache() {
+  cachedRegistry = null;
+  cachedSearchIndex = null;
+  cachedAskIndex = null;
+}
 
 function hashPayload(payload: unknown) {
   const json = JSON.stringify(payload);
@@ -733,8 +757,11 @@ export function getAskIndexPath(cacheDir = CACHE_DIR) {
 }
 
 export function loadRegistry(options?: { cacheDir?: string; buildIfMissing?: boolean }) {
-  if (cachedRegistry) {
+  if (shouldUseCache() && cachedRegistry) {
     return cachedRegistry;
+  }
+  if (!shouldUseCache() && options?.buildIfMissing) {
+    return buildRegistry().registry;
   }
   const cacheDir = options?.cacheDir ?? CACHE_DIR;
   const registryPath = getRegistryPath(cacheDir);
@@ -742,9 +769,11 @@ export function loadRegistry(options?: { cacheDir?: string; buildIfMissing?: boo
     if (options?.buildIfMissing) {
       const result = buildRegistry();
       writeRegistryFiles(result, cacheDir);
-      cachedRegistry = result.registry;
-      cachedSearchIndex = result.searchIndex;
-      cachedAskIndex = result.askIndex;
+      if (shouldUseCache()) {
+        cachedRegistry = result.registry;
+        cachedSearchIndex = result.searchIndex;
+        cachedAskIndex = result.askIndex;
+      }
       return result.registry;
     }
     throw new Error(
@@ -753,13 +782,19 @@ export function loadRegistry(options?: { cacheDir?: string; buildIfMissing?: boo
   }
 
   const raw = fs.readFileSync(registryPath, "utf8");
-  cachedRegistry = JSON.parse(raw) as ContentRegistry;
-  return cachedRegistry;
+  const registry = JSON.parse(raw) as ContentRegistry;
+  if (shouldUseCache()) {
+    cachedRegistry = registry;
+  }
+  return registry;
 }
 
 export function loadSearchIndex(options?: { cacheDir?: string; buildIfMissing?: boolean }) {
-  if (cachedSearchIndex) {
+  if (shouldUseCache() && cachedSearchIndex) {
     return cachedSearchIndex;
+  }
+  if (!shouldUseCache() && options?.buildIfMissing) {
+    return buildRegistry().searchIndex;
   }
   const cacheDir = options?.cacheDir ?? CACHE_DIR;
   const searchPath = getSearchIndexPath(cacheDir);
@@ -767,22 +802,30 @@ export function loadSearchIndex(options?: { cacheDir?: string; buildIfMissing?: 
     if (options?.buildIfMissing) {
       const result = buildRegistry();
       writeRegistryFiles(result, cacheDir);
-      cachedRegistry = result.registry;
-      cachedSearchIndex = result.searchIndex;
-      cachedAskIndex = result.askIndex;
+      if (shouldUseCache()) {
+        cachedRegistry = result.registry;
+        cachedSearchIndex = result.searchIndex;
+        cachedAskIndex = result.askIndex;
+      }
       return result.searchIndex;
     }
     return [];
   }
 
   const raw = fs.readFileSync(searchPath, "utf8");
-  cachedSearchIndex = JSON.parse(raw) as SearchIndexItem[];
-  return cachedSearchIndex;
+  const searchIndex = JSON.parse(raw) as SearchIndexItem[];
+  if (shouldUseCache()) {
+    cachedSearchIndex = searchIndex;
+  }
+  return searchIndex;
 }
 
 export function loadAskIndex(options?: { cacheDir?: string; buildIfMissing?: boolean }) {
-  if (cachedAskIndex) {
+  if (shouldUseCache() && cachedAskIndex) {
     return cachedAskIndex;
+  }
+  if (!shouldUseCache() && options?.buildIfMissing) {
+    return buildRegistry().askIndex;
   }
   const cacheDir = options?.cacheDir ?? CACHE_DIR;
   const askPath = getAskIndexPath(cacheDir);
@@ -790,15 +833,20 @@ export function loadAskIndex(options?: { cacheDir?: string; buildIfMissing?: boo
     if (options?.buildIfMissing) {
       const result = buildRegistry();
       writeRegistryFiles(result, cacheDir);
-      cachedRegistry = result.registry;
-      cachedSearchIndex = result.searchIndex;
-      cachedAskIndex = result.askIndex;
+      if (shouldUseCache()) {
+        cachedRegistry = result.registry;
+        cachedSearchIndex = result.searchIndex;
+        cachedAskIndex = result.askIndex;
+      }
       return result.askIndex;
     }
     return [];
   }
 
   const raw = fs.readFileSync(askPath, "utf8");
-  cachedAskIndex = JSON.parse(raw) as AskIndexItem[];
-  return cachedAskIndex;
+  const askIndex = JSON.parse(raw) as AskIndexItem[];
+  if (shouldUseCache()) {
+    cachedAskIndex = askIndex;
+  }
+  return askIndex;
 }

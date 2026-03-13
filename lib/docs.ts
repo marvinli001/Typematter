@@ -44,15 +44,20 @@ export type DocEntry = {
   language?: string;
 };
 
-const CONTENT_DIR = path.join(
-  process.cwd(),
-  siteConfig.contentDir ?? "content"
-);
 let cachedDocs: DocEntry[] | null = null;
 
-export function getContentDir() {
-  return CONTENT_DIR;
+function shouldUseCache() {
+  return process.env.NODE_ENV === "production";
 }
+
+function resolveContentDir() {
+  return path.join(process.cwd(), siteConfig.contentDir ?? "content");
+}
+
+export function getContentDir() {
+  return resolveContentDir();
+}
+
 
 export function normalizeRoute(route: string) {
   if (!route || route === "/") {
@@ -184,20 +189,21 @@ function extractPlainText(source: string) {
 }
 
 export function getAllDocEntries() {
-  if (cachedDocs) {
+  if (shouldUseCache() && cachedDocs) {
     return cachedDocs;
   }
 
   const i18nConfig = getI18nConfig();
+  const contentDir = getContentDir();
   const contentDirs = i18nConfig.enabled
-    ? i18nConfig.languages.map((lang) => path.join(CONTENT_DIR, lang.code))
-    : [CONTENT_DIR];
+    ? i18nConfig.languages.map((lang) => path.join(contentDir, lang.code))
+    : [contentDir];
   const files = contentDirs.flatMap((dir) => walkDir(dir));
   const docs = files.map((filePath) => {
     const raw = fs.readFileSync(filePath, "utf8");
     const { data, content } = matter(raw);
     const relativePath = path
-      .relative(CONTENT_DIR, filePath)
+      .relative(contentDir, filePath)
       .replace(/\\/g, "/");
     const pathSegments = relativePath.split("/");
     const language = i18nConfig.enabled ? pathSegments[0] : undefined;
@@ -230,7 +236,9 @@ export function getAllDocEntries() {
     };
   });
 
-  cachedDocs = docs;
+  if (shouldUseCache()) {
+    cachedDocs = docs;
+  }
   return docs;
 }
 

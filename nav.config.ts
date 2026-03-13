@@ -1,7 +1,9 @@
 ﻿import { defineNavConfig } from "./lib/typematter/config";
 import siteConfig from "./site.config";
 
-const repoUrl = siteConfig.repo?.url ?? "";
+const repoUrl = siteConfig.repo?.url?.trim() ?? "";
+const hasPublicRepoUrl =
+  repoUrl.length > 0 && !/^https?:\/\/example\.com\b/i.test(repoUrl);
 const navConfig = defineNavConfig<string>()({
   appendUnlisted: true,
   groups: [
@@ -11,6 +13,7 @@ const navConfig = defineNavConfig<string>()({
         { type: "doc", slug: "/", title: "Overview" },
         { type: "doc", slug: "get-started/quickstart" },
         { type: "doc", slug: "get-started/project-structure" },
+        { type: "doc", slug: "get-started/deployment" },
       ],
     },
     {
@@ -19,6 +22,7 @@ const navConfig = defineNavConfig<string>()({
         { type: "doc", slug: "core-concepts/architecture" },
         { type: "doc", slug: "core-concepts/navigation" },
         { type: "doc", slug: "core-concepts/components" },
+        { type: "doc", slug: "core-concepts/authoring-syntax" },
       ],
     },
     {
@@ -40,7 +44,7 @@ const navConfig = defineNavConfig<string>()({
           type: "external",
           title: "Git repository",
           href: repoUrl,
-          hidden: !repoUrl,
+          hidden: !hasPublicRepoUrl,
         },
       ],
     },

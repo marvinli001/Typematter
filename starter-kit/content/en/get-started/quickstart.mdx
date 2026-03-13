@@ -1,0 +1,36 @@
+---
+title: Quickstart
+order: 2
+section: Get started
+pager: true
+---
+
+## 1. Install and run
+
+```bash
+npm install
+npm run dev
+```
+
+## 2. Replace the sample content
+
+Create your own MDX tree under `content/`.
+
+```text
+content/
+  en/
+    index.mdx
+    get-started/
+      quickstart.mdx
+  cn/
+    index.mdx
+```
+
+## 3. Update navigation
+
+Navigation lives in `nav.config.ts`. It controls display order, not page creation.
+
+<Callout type="note" title="Required frontmatter">
+Every page needs `title`, `order`, and `section` in frontmatter.
+</Callout>
+

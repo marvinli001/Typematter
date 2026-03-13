@@ -98,6 +98,20 @@ export default function DocsShell({
     }
     return `${languagePrefix}${routePath.startsWith("/") ? routePath : `/${routePath}`}`;
   };
+  const docTopLinks = navGroups.flatMap((group) =>
+    group.items.reduce<Array<{ label: string; href: string }>>((links, item) => {
+      if (item.type === "doc") {
+        links.push({ label: item.title, href: item.href });
+      }
+      return links;
+    }, [])
+  );
+  const primaryTopLinks = [
+    { label: uiCopy.docsShell.docs, href: buildLangHref("/") },
+    ...docTopLinks
+      .filter((item) => item.href !== buildLangHref("/"))
+      .slice(0, 2),
+  ];
 
   return (
     <div className="docs-shell">
@@ -125,18 +139,11 @@ export default function DocsShell({
             </span>
           </Link>
           <nav className="top-links">
-            <Link className="top-link" href={buildLangHref("/")}>
-              {uiCopy.docsShell.docs}
-            </Link>
-            <Link
-              className="top-link"
-              href={buildLangHref("/core-concepts/components")}
-            >
-              {uiCopy.docsShell.components}
-            </Link>
-            <Link className="top-link" href={buildLangHref("/changelog")}>
-              {uiCopy.docsShell.changelog}
-            </Link>
+            {primaryTopLinks.map((link) => (
+              <Link className="top-link" href={link.href} key={`${link.href}-${link.label}`}>
+                {link.label}
+              </Link>
+            ))}
           </nav>
         </div>
         <div className="topbar-right">

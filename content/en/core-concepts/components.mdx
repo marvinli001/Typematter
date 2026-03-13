@@ -8,6 +8,8 @@ version: 0.3.0-rc
 
 Doc components express semantics such as notes, diffs, structured blocks, and columns. Most components can be used as MDX tags or Markdown directives.
 
+If you mainly need a syntax cheat sheet instead of rendered examples, go straight to [Authoring Syntax](/en/core-concepts/authoring-syntax).
+
 ## Callout
 
 Callouts should reflect intent:
@@ -257,6 +259,203 @@ Compare multiple offerings with a semantic Markdown table.
 | Image generation | no | yes |
 | Reasoning summaries | no | yes |
 :::
+
+## Endpoint / ParamTable / ResponseSchema
+
+Use this set for API reference pages. The goal is to split endpoint header, parameters, and response structure into stable semantic blocks instead of loose prose and ad-hoc tables.
+
+<Endpoint
+  method="GET"
+  path="/v1/docs/[slug]"
+  title="Fetch a doc page"
+  summary="Returns registry metadata for a route."
+  auth="optional"
+  since="0.3.0-rc"
+>
+  <ParamTable title="Path params">
+    <ParamField name="slug" type="string[]" required>
+      Route segments for the document.
+    </ParamField>
+    <ParamField name="lang" type='"cn" | "en"' defaultValue="cn">
+      Language code.
+    </ParamField>
+  </ParamTable>
+
+  <ResponseSchema title="200 Response" code="200" mediaType="application/json">
+    <SchemaField name="title" type="string" required description="Page title" />
+    <SchemaField name="section" type="string" required description="Section name" />
+    <SchemaField name="toc" type="TocItem[]" description="Structured headings">
+      <SchemaField name="id" type="string" required description="Anchor id" />
+      <SchemaField name="title" type="string" required description="Heading text" />
+      <SchemaField name="level" type="number" required description="Heading depth" />
+    </SchemaField>
+  </ResponseSchema>
+</Endpoint>
+
+### Directive syntax
+
+~~~mdx
+:::endpoint{method="GET" path="/v1/docs/[slug]" title="Fetch a doc page" summary="Returns registry metadata for a route." auth="optional" since="0.3.0-rc"}
+:::param-table[Path params]
+::param-field[slug]{type="string[]" required="true" description="Route segments for the document."}
+::param-field[lang]{type='"cn" | "en"' default="cn" description="Language code."}
+:::
+
+:::response-schema[200 Response]{code="200" mediaType="application/json"}
+::schema-field[title]{type="string" required="true" description="Page title"}
+::schema-field[section]{type="string" required="true" description="Section name"}
+:::schema-field[toc]{type="TocItem[]" description="Structured headings"}
+::schema-field[id]{type="string" required="true" description="Anchor id"}
+::schema-field[title]{type="string" required="true" description="Heading text"}
+::schema-field[level]{type="number" required="true" description="Heading depth"}
+:::
+:::
+:::
+~~~
+
+## DoDont
+
+This is useful for best practices, migration rules, and review checklists where "do this / don't do this" is the core message.
+
+<DoDont title="When writing API docs">
+  <DoItem title="Keep fields stable">
+    Public field names, enum values, and error codes should stay stable over time.
+  </DoItem>
+  <DoItem title="Document failure modes">
+    Include 4xx / 5xx response shapes, not just the happy path.
+  </DoItem>
+  <DontItem title="Do not hide breaking changes in prose">
+    Breaking behavior should have explicit markers instead of being buried in a long paragraph.
+  </DontItem>
+  <DontItem title="Do not rely on examples alone">
+    Example responses are useful, but they do not replace field-level structure.
+  </DontItem>
+</DoDont>
+
+### Directive syntax
+
+~~~mdx
+:::do-dont[When writing API docs]
+:::do[Keep fields stable]
+Public field names, enum values, and error codes should stay stable over time.
+:::
+
+:::dont[Do not rely on examples alone]
+Example responses do not replace field-level structure.
+:::
+:::
+~~~
+
+## VersionGate
+
+Use this to make it obvious when a capability was introduced, deprecated, or removed.
+
+<VersionGate
+  title="Legacy search index"
+  since="0.2.0"
+  deprecated="0.4.0"
+  removedIn="1.0.0"
+  replacement="standard search manifest"
+>
+  When a feature enters migration mode, do not just say "this may change later". Put the version policy next to the feature itself.
+</VersionGate>
+
+### Directive syntax
+
+~~~mdx
+:::version-gate[Legacy search index]{since="0.2.0" deprecated="0.4.0" removedIn="1.0.0" replacement="standard search manifest"}
+When a feature enters migration mode, do not just say "this may change later". Put the version policy next to the feature itself.
+:::
+~~~
+
+## CommandGroup
+
+Use it to switch commands by package manager, operating system, or environment.
+
+<CommandGroup title="Install Typematter">
+  <Command label="pnpm" description="Recommended">
+    {`pnpm install
+pnpm dev`}
+  </Command>
+  <Command label="npm">
+    {`npm install
+npm run dev`}
+  </Command>
+  <Command label="yarn">
+    {`yarn
+yarn dev`}
+  </Command>
+  <Command label="bun">
+    {`bun install
+bun run dev`}
+  </Command>
+</CommandGroup>
+
+### Directive syntax
+
+~~~mdx
+:::command-group[Install Typematter]
+:::command[pnpm]{description="Recommended"}
+```bash
+pnpm install
+pnpm dev
+```
+:::
+
+:::command[npm]
+```bash
+npm install
+npm run dev
+```
+:::
+:::
+~~~
+
+## PreviewFrame
+
+Use this for screenshots, recordings, product demos, or same-origin iframe previews.
+
+<PreviewFrame
+  src="/en/get-started/quickstart/"
+  title="Quickstart page preview"
+  caption="Good for same-origin page previews. You can also pass an image or video source."
+/>
+
+### Directive syntax
+
+~~~mdx
+::preview-frame[Quickstart page preview]{src="/en/get-started/quickstart/" caption="Good for same-origin page previews. You can also pass an image or video source."}
+~~~
+
+## Timeline / ReleaseItem
+
+Use it for version history, migration stages, and breaking change narratives.
+
+<Timeline>
+  <ReleaseItem version="0.1.0" date="2026-01-26" title="Initial shell">
+    Introduced the static docs shell, MDX loading, and base navigation.
+  </ReleaseItem>
+  <ReleaseItem version="0.2.0" date="2026-02-03" title="Search and Ask AI" status="Beta">
+    Added standard search assets and optional Ask AI integration.
+  </ReleaseItem>
+  <ReleaseItem version="0.3.0-rc" date="2026-03-12" title="Starter and deployment" status="Current">
+    Added the `init` starter flow, deployment docs, and a fuller API documentation component set.
+  </ReleaseItem>
+</Timeline>
+
+### Directive syntax
+
+~~~mdx
+:::timeline
+:::release-item[Initial shell]{version="0.1.0" date="2026-01-26"}
+Introduced the static docs shell, MDX loading, and base navigation.
+:::
+
+:::release-item[Starter and deployment]{version="0.3.0-rc" date="2026-03-12" status="Current"}
+Added the `init` starter flow, deployment docs, and a fuller API documentation component set.
+:::
+:::
+~~~
 
 
 

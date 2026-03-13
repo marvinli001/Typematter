@@ -28,6 +28,20 @@ const COMPONENT_STYLE_FILES: Record<string, string[]> = {
   FileTreeItem: ["file-tree.css"],
   Annotation: ["annotation.css"],
   FeatureMatrix: ["feature-matrix.css"],
+  Endpoint: ["api-docs.css"],
+  ParamTable: ["api-docs.css"],
+  ParamField: ["api-docs.css"],
+  ResponseSchema: ["api-docs.css"],
+  SchemaField: ["api-docs.css"],
+  DoDont: ["do-dont.css"],
+  DoItem: ["do-dont.css"],
+  DontItem: ["do-dont.css"],
+  VersionGate: ["version-gate.css"],
+  CommandGroup: ["command-group.css"],
+  Command: ["command-group.css"],
+  PreviewFrame: ["preview-frame.css"],
+  Timeline: ["timeline.css"],
+  ReleaseItem: ["timeline.css"],
 };
 
 const COMPONENT_DEPENDENCIES: Record<string, string[]> = {
@@ -37,6 +51,11 @@ const COMPONENT_DEPENDENCIES: Record<string, string[]> = {
   Steps: ["Step"],
   FileTree: ["FileTreeItem"],
   Cards: ["Card"],
+  ParamTable: ["ParamField"],
+  ResponseSchema: ["SchemaField"],
+  DoDont: ["DoItem", "DontItem"],
+  CommandGroup: ["Command"],
+  Timeline: ["ReleaseItem"],
 };
 
 const cssCache = new Map<string, string>();

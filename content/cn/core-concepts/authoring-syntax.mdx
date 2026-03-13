@@ -1,0 +1,223 @@
+---
+title: 指令速查表
+order: 4
+section: Core concepts
+status: experimental
+version: 0.3.0-rc
+---
+
+这页是 Typematter 的 Markdown 指令速查表。需要看组件的实际渲染效果时，再跳到[组件页](/cn/core-concepts/components)。
+
+## 基本规则
+
+- 容器指令使用 `:::name ... :::`，适合包裹多行内容或嵌套其它块。
+- 叶子指令使用 `::name[label]{attrs}`，适合单个结构块。
+- 行内指令使用 `:name[label]{attrs}`，适合段落内的小语义。
+- 布尔属性建议显式写成 `required="true"`、`deprecated="true"`，避免内容迁移时歧义。
+- 如果示例里还要再嵌套 Markdown 代码块，外层示例请用 `~~~mdx` 包住。
+
+## 指令一览
+
+| Directive | 类型 | 用途 |
+| --- | --- | --- |
+| `details` | container | 折叠说明 / FAQ |
+| `steps` | container | 步骤流程 |
+| `file-tree` | container | 文件树 |
+| `cards` | container | 卡片入口 |
+| `code-group` | container | 代码或富内容切换 |
+| `tab` | container | `code-group` 子面板 |
+| `feature-matrix` | container | 能力矩阵表格 |
+| `badge` | text | 行内状态标签 |
+| `annotation` | text | 行内注释提示 |
+| `endpoint` | container | API 接口头信息 |
+| `param-table` | container | 参数表 |
+| `param-field` | leaf | 单个参数字段 |
+| `response-schema` | container | 返回结构 |
+| `schema-field` | leaf / container | 返回字段，可嵌套 |
+| `do-dont` | container | 最佳实践对比 |
+| `do` | container | 正向建议项 |
+| `dont` | container | 反向建议项 |
+| `version-gate` | container | 版本策略说明 |
+| `command-group` | container | 命令切换 |
+| `command` | container | 命令面板 |
+| `preview-frame` | leaf | 图片 / 视频 / iframe 预览 |
+| `timeline` | container | 时间线 |
+| `release-item` | container | 时间线条目 |
+
+## 结构与布局
+
+### Details / Steps / File Tree
+
+~~~mdx
+:::details 为什么这样设计
+把补充说明折叠起来，主线阅读会更干净。
+:::
+
+:::steps
+1. 创建页面。
+2. 写 frontmatter。
+3. 运行 `npm run validate:docs`。
+:::
+
+:::file-tree
+- content/
+  - core-concepts/
+    - authoring-syntax.mdx
+- package.json - 项目元信息
+:::
+~~~
+
+### Cards / Feature Matrix
+
+~~~mdx
+:::cards
+- [快速开始](/cn/get-started/quickstart) - 安装依赖并初始化文档结构。
+- [组件体系](/cn/core-concepts/components) - 查看所有组件效果。
+:::
+
+:::feature-matrix
+| 能力 | Free | Pro |
+| --- | --- | --- |
+| 静态导出 | yes | yes |
+| Ask AI | optional | optional |
+| 双语文档 | yes | yes |
+:::
+~~~
+
+### Code Group / Tab
+
+~~~mdx
+:::code-group
+```bash [npm]
+npm install
+npm run dev
+```
+
+```bash [pnpm]
+pnpm install
+pnpm dev
+```
+:::
+
+:::code-group
+:::tab[说明]
+适合放说明文字、截图或迁移提示。
+:::
+
+:::tab[配置]
+```toml
+[docs]
+static = true
+```
+:::
+:::
+~~~
+
+## 行内语义
+
+### Badge / Annotation
+
+~~~mdx
+Typematter 当前处于 :badge[实验中]{variant="note"} 阶段。
+
+这个能力仍有限制：:annotation[先看部署页里的环境变量说明。]{label="i" title="注意"}。
+~~~
+
+## API 文档
+
+### Endpoint / ParamTable / ResponseSchema
+
+~~~mdx
+:::endpoint{method="GET" path="/v1/docs/[slug]" title="获取文档页面" summary="按路由返回页面元信息。" auth="optional" since="0.3.0-rc"}
+:::param-table[Path params]
+::param-field[slug]{type="string[]" required="true" description="文档路由片段数组。"}
+::param-field[lang]{type='"cn" | "en"' default="cn" description="语言代码。"}
+:::
+
+:::response-schema[200 Response]{code="200" mediaType="application/json"}
+::schema-field[title]{type="string" required="true" description="页面标题"}
+:::schema-field[toc]{type="TocItem[]" description="标题目录"}
+::schema-field[id]{type="string" required="true" description="锚点 id"}
+::schema-field[level]{type="number" required="true" description="标题层级"}
+:::
+:::
+:::
+~~~
+
+属性速记：
+
+- `endpoint`: `method`、`path` 必填；可选 `title`、`summary`、`auth`、`since`、`deprecated`、`removedIn`
+- `param-field`: `type` 必填；可选 `required`、`default`、`description`
+- `response-schema`: 可选 `code`、`mediaType`
+- `schema-field`: `type` 必填；可选 `required`、`description`
+
+## 规范与迁移
+
+### DoDont / VersionGate
+
+~~~mdx
+:::do-dont[写 API 文档时]
+:::do[字段保持稳定]
+公开字段名和错误码应保持长期稳定。
+:::
+
+:::dont[不要把 breaking change 藏进正文]
+迁移说明应该显式标记。
+:::
+:::
+
+:::version-gate[Legacy search index]{since="0.2.0" deprecated="0.4.0" removedIn="1.0.0" replacement="standard search manifest"}
+当能力进入迁移期时，把版本策略直接贴在功能块旁边。
+:::
+~~~
+
+属性速记：
+
+- `do-dont`: 可选 `title`，也可用 `doTitle` / `dontTitle` 自定义列标题
+- `version-gate`: 可选 `since`、`deprecated`、`removedIn`、`replacement`
+
+## 命令、预览与时间线
+
+### CommandGroup / PreviewFrame / Timeline
+
+~~~mdx
+:::command-group[安装 Typematter]
+:::command[pnpm]{description="推荐"}
+```bash
+pnpm install
+pnpm dev
+```
+:::
+
+:::command[npm]
+```bash
+npm install
+npm run dev
+```
+:::
+:::
+
+::preview-frame[Quickstart 页面预览]{src="/cn/get-started/quickstart/" caption="同源页面、截图或录屏都可以。"}
+
+:::timeline
+:::release-item[Starter 与部署能力]{version="0.3.0-rc" date="2026-03-12" status="Current"}
+增加 `init` starter 流程、部署说明，以及更完整的 API 组件。
+:::
+:::
+~~~
+
+属性速记：
+
+- `command`: 标签写在方括号里；可选 `platform`、`description`
+- `preview-frame`: `src` 必填；可选 `type`、`caption`、`ratio`、`height`、`allow`、`poster`
+- `release-item`: `version` 必填；可选 `date`、`status`
+
+## 什么时候用 JSX
+
+这套 directive 语法适合让内容作者保持纯 Markdown 写作体验。遇到下面这几种情况，直接写 MDX JSX 更稳：
+
+- 需要非常复杂的嵌套结构
+- 需要把 React children 精确放到某个插槽
+- 需要和自定义组件组合，且属性较多
+
+组件级示例与视觉效果仍以[组件页](/cn/core-concepts/components)为准。

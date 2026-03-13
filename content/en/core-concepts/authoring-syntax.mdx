@@ -1,0 +1,223 @@
+---
+title: Authoring Syntax
+order: 4
+section: Core concepts
+status: experimental
+version: 0.3.0-rc
+---
+
+This page is the Typematter Markdown directive cheat sheet. For rendered examples and visual behavior, jump to the [components page](/en/core-concepts/components).
+
+## Ground rules
+
+- Container directives use `:::name ... :::` and are best for multi-line content or nested blocks.
+- Leaf directives use `::name[label]{attrs}` for single structured blocks.
+- Text directives use `:name[label]{attrs}` for inline semantics inside paragraphs.
+- Write booleans explicitly as `required="true"` or `deprecated="true"` to keep migrations unambiguous.
+- If an example itself contains fenced code blocks, wrap the outer example in `~~~mdx`.
+
+## Directive index
+
+| Directive | Type | Use |
+| --- | --- | --- |
+| `details` | container | Collapsible notes / FAQ |
+| `steps` | container | Procedural flows |
+| `file-tree` | container | File trees |
+| `cards` | container | Card entry grids |
+| `code-group` | container | Code or rich-content tabs |
+| `tab` | container | Child panel for `code-group` |
+| `feature-matrix` | container | Capability tables |
+| `badge` | text | Inline status labels |
+| `annotation` | text | Inline explanatory tooltip |
+| `endpoint` | container | API endpoint header |
+| `param-table` | container | Parameter table |
+| `param-field` | leaf | Single parameter row |
+| `response-schema` | container | Response structure |
+| `schema-field` | leaf / container | Response field, supports nesting |
+| `do-dont` | container | Best-practice comparison |
+| `do` | container | Positive guidance item |
+| `dont` | container | Negative guidance item |
+| `version-gate` | container | Version policy block |
+| `command-group` | container | Command switcher |
+| `command` | container | Command panel |
+| `preview-frame` | leaf | Image / video / iframe preview |
+| `timeline` | container | Release timeline |
+| `release-item` | container | Timeline entry |
+
+## Structure and layout
+
+### Details / Steps / File Tree
+
+~~~mdx
+:::details Why this shape
+Collapse supporting details so the main reading flow stays clean.
+:::
+
+:::steps
+1. Create the page.
+2. Add frontmatter.
+3. Run `npm run validate:docs`.
+:::
+
+:::file-tree
+- content/
+  - core-concepts/
+    - authoring-syntax.mdx
+- package.json - Project metadata
+:::
+~~~
+
+### Cards / Feature Matrix
+
+~~~mdx
+:::cards
+- [Quickstart](/en/get-started/quickstart) - Install dependencies and scaffold the docs.
+- [Components](/en/core-concepts/components) - Browse rendered component examples.
+:::
+
+:::feature-matrix
+| Capability | Free | Pro |
+| --- | --- | --- |
+| Static export | yes | yes |
+| Ask AI | optional | optional |
+| Bilingual docs | yes | yes |
+:::
+~~~
+
+### Code Group / Tab
+
+~~~mdx
+:::code-group
+```bash [npm]
+npm install
+npm run dev
+```
+
+```bash [pnpm]
+pnpm install
+pnpm dev
+```
+:::
+
+:::code-group
+:::tab[Overview]
+Use tabs for prose, screenshots, or migration notes.
+:::
+
+:::tab[Config]
+```toml
+[docs]
+static = true
+```
+:::
+:::
+~~~
+
+## Inline semantics
+
+### Badge / Annotation
+
+~~~mdx
+Typematter is currently :badge[Experimental]{variant="note"}.
+
+This feature still has constraints: :annotation[Read the deployment page for the environment variables first.]{label="i" title="Heads up"}.
+~~~
+
+## API reference
+
+### Endpoint / ParamTable / ResponseSchema
+
+~~~mdx
+:::endpoint{method="GET" path="/v1/docs/[slug]" title="Fetch a doc page" summary="Returns route metadata." auth="optional" since="0.3.0-rc"}
+:::param-table[Path params]
+::param-field[slug]{type="string[]" required="true" description="Route segments for the document."}
+::param-field[lang]{type='"cn" | "en"' default="cn" description="Language code."}
+:::
+
+:::response-schema[200 Response]{code="200" mediaType="application/json"}
+::schema-field[title]{type="string" required="true" description="Page title"}
+:::schema-field[toc]{type="TocItem[]" description="Structured headings"}
+::schema-field[id]{type="string" required="true" description="Anchor id"}
+::schema-field[level]{type="number" required="true" description="Heading depth"}
+:::
+:::
+:::
+~~~
+
+Attribute shorthand:
+
+- `endpoint`: required `method`, `path`; optional `title`, `summary`, `auth`, `since`, `deprecated`, `removedIn`
+- `param-field`: required `type`; optional `required`, `default`, `description`
+- `response-schema`: optional `code`, `mediaType`
+- `schema-field`: required `type`; optional `required`, `description`
+
+## Policy and migration
+
+### DoDont / VersionGate
+
+~~~mdx
+:::do-dont[When writing API docs]
+:::do[Keep fields stable]
+Public field names and error codes should stay stable over time.
+:::
+
+:::dont[Do not bury breaking changes in prose]
+Migration notes should be explicit.
+:::
+:::
+
+:::version-gate[Legacy search index]{since="0.2.0" deprecated="0.4.0" removedIn="1.0.0" replacement="standard search manifest"}
+When a feature enters migration mode, put the version policy next to the feature itself.
+:::
+~~~
+
+Attribute shorthand:
+
+- `do-dont`: optional `title`, with `doTitle` and `dontTitle` available for custom column labels
+- `version-gate`: optional `since`, `deprecated`, `removedIn`, `replacement`
+
+## Commands, previews, and release notes
+
+### CommandGroup / PreviewFrame / Timeline
+
+~~~mdx
+:::command-group[Install Typematter]
+:::command[pnpm]{description="Recommended"}
+```bash
+pnpm install
+pnpm dev
+```
+:::
+
+:::command[npm]
+```bash
+npm install
+npm run dev
+```
+:::
+:::
+
+::preview-frame[Quickstart page preview]{src="/en/get-started/quickstart/" caption="Works for same-origin pages, screenshots, or recordings."}
+
+:::timeline
+:::release-item[Starter and deployment]{version="0.3.0-rc" date="2026-03-12" status="Current"}
+Added the `init` starter flow, deployment docs, and a fuller API component set.
+:::
+:::
+~~~
+
+Attribute shorthand:
+
+- `command`: label goes in square brackets; optional `platform`, `description`
+- `preview-frame`: required `src`; optional `type`, `caption`, `ratio`, `height`, `allow`, `poster`
+- `release-item`: required `version`; optional `date`, `status`
+
+## When to use JSX
+
+Directive syntax is for content authors who want to stay in Markdown. Switch to MDX JSX when:
+
+- the nesting is unusually complex
+- children need precise slot placement
+- the block has many props and composes with custom React components
+
+Use the [components page](/en/core-concepts/components) as the source of truth for rendered behavior.

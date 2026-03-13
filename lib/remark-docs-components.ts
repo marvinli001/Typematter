@@ -25,6 +25,13 @@ type TextDirectiveNode = {
   children?: Array<any>;
 };
 
+type LeafDirectiveNode = {
+  type: "leafDirective";
+  name?: string;
+  attributes?: Record<string, string>;
+  children?: Array<any>;
+};
+
 type ListNode = {
   type: "list";
   ordered?: boolean;
@@ -80,6 +87,20 @@ const STEPS_NAMES = new Set(["steps"]);
 const FILE_TREE_NAMES = new Set(["file-tree", "filetree"]);
 const CARDS_NAMES = new Set(["cards", "card-grid", "card-group"]);
 const BADGE_NAMES = new Set(["badge"]);
+const ENDPOINT_NAMES = new Set(["endpoint"]);
+const PARAM_TABLE_NAMES = new Set(["param-table", "paramtable"]);
+const PARAM_FIELD_NAMES = new Set(["param-field", "paramfield"]);
+const RESPONSE_SCHEMA_NAMES = new Set(["response-schema", "responseschema"]);
+const SCHEMA_FIELD_NAMES = new Set(["schema-field", "schemafield"]);
+const DO_DONT_NAMES = new Set(["do-dont", "dodont"]);
+const DO_ITEM_NAMES = new Set(["do"]);
+const DONT_ITEM_NAMES = new Set(["dont", "don't"]);
+const VERSION_GATE_NAMES = new Set(["version-gate", "versiongate"]);
+const COMMAND_GROUP_NAMES = new Set(["command-group", "commandgroup"]);
+const COMMAND_ITEM_NAMES = new Set(["command"]);
+const PREVIEW_FRAME_NAMES = new Set(["preview-frame", "previewframe"]);
+const TIMELINE_NAMES = new Set(["timeline"]);
+const RELEASE_ITEM_NAMES = new Set(["release-item", "releaseitem"]);
 
 function getParagraphText(node: ParagraphNode) {
   if (!node.children || node.children.length === 0) {
@@ -135,6 +156,37 @@ function buildAttribute(name: string, value?: string) {
     return null;
   }
   return { type: "mdxJsxAttribute", name, value } satisfies MdxAttribute;
+}
+
+function getInlineDirectiveLabel(children?: Array<any>) {
+  const text = extractTextFromNodes(children).trim();
+  return text || undefined;
+}
+
+function buildFlowElement(
+  name: string,
+  attributes: MdxAttribute[] = [],
+  children: Array<any> = []
+) {
+  return {
+    type: "mdxJsxFlowElement",
+    name,
+    attributes,
+    children,
+  } satisfies MdxFlowElement;
+}
+
+function buildTextElement(
+  name: string,
+  attributes: MdxAttribute[] = [],
+  children: Array<any> = []
+) {
+  return {
+    type: "mdxJsxTextElement",
+    name,
+    attributes,
+    children,
+  } satisfies MdxTextElement;
 }
 
 function getDirectiveLabel(children: Array<any>) {
@@ -647,6 +699,324 @@ function transformBadge(node: TextDirectiveNode) {
   } satisfies MdxTextElement;
 }
 
+function transformParamField(node: LeafDirectiveNode) {
+  const rawAttributes = node.attributes ?? {};
+  const name = rawAttributes.name ?? getInlineDirectiveLabel(node.children);
+  const description = rawAttributes.description ?? getInlineDirectiveLabel(node.children);
+  const attributes = [
+    buildAttribute("name", name),
+    buildAttribute("type", rawAttributes.type),
+    buildAttribute("required", rawAttributes.required),
+    buildAttribute("defaultValue", rawAttributes.defaultValue ?? rawAttributes.default),
+    buildAttribute("description", description),
+  ].filter(Boolean) as MdxAttribute[];
+
+  return buildFlowElement("ParamField", attributes);
+}
+
+function transformSchemaField(node: DirectiveNode | LeafDirectiveNode) {
+  const rawAttributes = node.attributes ?? {};
+  const label =
+    node.type === "containerDirective"
+      ? getDirectiveLabel(node.children ?? []).label
+      : getInlineDirectiveLabel(node.children);
+  const description =
+    rawAttributes.description ??
+    (node.type === "leafDirective" ? getInlineDirectiveLabel(node.children) : undefined);
+  const attributes = [
+    buildAttribute("name", rawAttributes.name ?? label),
+    buildAttribute("type", rawAttributes.type),
+    buildAttribute("required", rawAttributes.required),
+    buildAttribute("description", description),
+  ].filter(Boolean) as MdxAttribute[];
+
+  const children =
+    node.type === "containerDirective"
+      ? transformChildNodes(getDirectiveLabel(node.children ?? []).children)
+      : [];
+
+  return buildFlowElement("SchemaField", attributes, children);
+}
+
+function transformParamTable(node: DirectiveNode) {
+  const rawAttributes = node.attributes ?? {};
+  const { label, children } = getDirectiveLabel(node.children ?? []);
+  const attributes = [
+    buildAttribute("title", rawAttributes.title ?? label),
+  ].filter(Boolean) as MdxAttribute[];
+
+  const bodyChildren = children
+    .map((child) => {
+      if (child?.type === "leafDirective" && PARAM_FIELD_NAMES.has(child.name ?? "")) {
+        return transformParamField(child as LeafDirectiveNode);
+      }
+      return transformChildNode(child);
+    })
+    .flat();
+
+  return buildFlowElement("ParamTable", attributes, bodyChildren);
+}
+
+function transformResponseSchema(node: DirectiveNode) {
+  const rawAttributes = node.attributes ?? {};
+  const { label, children } = getDirectiveLabel(node.children ?? []);
+  const attributes = [
+    buildAttribute("title", rawAttributes.title ?? label),
+    buildAttribute("code", rawAttributes.code),
+    buildAttribute("mediaType", rawAttributes.mediaType ?? rawAttributes.type),
+  ].filter(Boolean) as MdxAttribute[];
+
+  const bodyChildren = children
+    .map((child) => {
+      if (child?.type === "leafDirective" && SCHEMA_FIELD_NAMES.has(child.name ?? "")) {
+        return transformSchemaField(child as LeafDirectiveNode);
+      }
+      if (child?.type === "containerDirective" && SCHEMA_FIELD_NAMES.has(child.name ?? "")) {
+        return transformSchemaField(child as DirectiveNode);
+      }
+      return transformChildNode(child);
+    })
+    .flat();
+
+  return buildFlowElement("ResponseSchema", attributes, bodyChildren);
+}
+
+function transformEndpoint(node: DirectiveNode) {
+  const rawAttributes = node.attributes ?? {};
+  const { label, children } = getDirectiveLabel(node.children ?? []);
+  const attributes = [
+    buildAttribute("method", rawAttributes.method),
+    buildAttribute("path", rawAttributes.path),
+    buildAttribute("title", rawAttributes.title ?? label),
+    buildAttribute("summary", rawAttributes.summary),
+    buildAttribute("auth", rawAttributes.auth),
+    buildAttribute("since", rawAttributes.since),
+    buildAttribute("deprecated", rawAttributes.deprecated),
+    buildAttribute("removedIn", rawAttributes.removedIn),
+  ].filter(Boolean) as MdxAttribute[];
+
+  const bodyChildren = children
+    .map((child) => {
+      if (child?.type === "containerDirective" && PARAM_TABLE_NAMES.has(child.name ?? "")) {
+        return transformParamTable(child as DirectiveNode);
+      }
+      if (child?.type === "containerDirective" && RESPONSE_SCHEMA_NAMES.has(child.name ?? "")) {
+        return transformResponseSchema(child as DirectiveNode);
+      }
+      return transformChildNode(child);
+    })
+    .flat();
+
+  return buildFlowElement("Endpoint", attributes, bodyChildren);
+}
+
+function transformDoItem(node: DirectiveNode, componentName: "DoItem" | "DontItem") {
+  const rawAttributes = node.attributes ?? {};
+  const { label, children } = getDirectiveLabel(node.children ?? []);
+  const attributes = [
+    buildAttribute("title", rawAttributes.title ?? label),
+  ].filter(Boolean) as MdxAttribute[];
+  return buildFlowElement(componentName, attributes, transformChildNodes(children));
+}
+
+function transformDoDont(node: DirectiveNode) {
+  const rawAttributes = node.attributes ?? {};
+  const { label, children } = getDirectiveLabel(node.children ?? []);
+  const attributes = [
+    buildAttribute("title", rawAttributes.title ?? label),
+    buildAttribute("doTitle", rawAttributes.doTitle ?? rawAttributes.do),
+    buildAttribute("dontTitle", rawAttributes.dontTitle ?? rawAttributes.dont),
+  ].filter(Boolean) as MdxAttribute[];
+
+  const bodyChildren = children
+    .map((child) => {
+      if (child?.type === "containerDirective" && DO_ITEM_NAMES.has(child.name ?? "")) {
+        return transformDoItem(child as DirectiveNode, "DoItem");
+      }
+      if (child?.type === "containerDirective" && DONT_ITEM_NAMES.has(child.name ?? "")) {
+        return transformDoItem(child as DirectiveNode, "DontItem");
+      }
+      return transformChildNode(child);
+    })
+    .flat();
+
+  return buildFlowElement("DoDont", attributes, bodyChildren);
+}
+
+function transformVersionGate(node: DirectiveNode | LeafDirectiveNode) {
+  const rawAttributes = node.attributes ?? {};
+  const label =
+    node.type === "containerDirective"
+      ? getDirectiveLabel(node.children ?? []).label
+      : getInlineDirectiveLabel(node.children);
+  const attributes = [
+    buildAttribute("title", rawAttributes.title ?? label),
+    buildAttribute("since", rawAttributes.since),
+    buildAttribute("deprecated", rawAttributes.deprecated),
+    buildAttribute("removedIn", rawAttributes.removedIn),
+    buildAttribute("replacement", rawAttributes.replacement),
+  ].filter(Boolean) as MdxAttribute[];
+
+  const children =
+    node.type === "containerDirective"
+      ? transformChildNodes(getDirectiveLabel(node.children ?? []).children)
+      : [];
+
+  return buildFlowElement("VersionGate", attributes, children);
+}
+
+function transformCommandItem(node: DirectiveNode) {
+  const rawAttributes = node.attributes ?? {};
+  const { label, children } = getDirectiveLabel(node.children ?? []);
+  const attributes = [
+    buildAttribute("label", rawAttributes.label ?? label),
+    buildAttribute("platform", rawAttributes.platform),
+    buildAttribute("description", rawAttributes.description),
+  ].filter(Boolean) as MdxAttribute[];
+
+  return buildFlowElement("Command", attributes, transformChildNodes(children));
+}
+
+function transformCommandGroup(node: DirectiveNode) {
+  const rawAttributes = node.attributes ?? {};
+  const { label, children } = getDirectiveLabel(node.children ?? []);
+  const attributes = [
+    buildAttribute("title", rawAttributes.title ?? label),
+  ].filter(Boolean) as MdxAttribute[];
+
+  const bodyChildren = children
+    .map((child) => {
+      if (child?.type === "containerDirective" && COMMAND_ITEM_NAMES.has(child.name ?? "")) {
+        return transformCommandItem(child as DirectiveNode);
+      }
+      return transformChildNode(child);
+    })
+    .flat();
+
+  return buildFlowElement("CommandGroup", attributes, bodyChildren);
+}
+
+function transformPreviewFrame(node: LeafDirectiveNode | DirectiveNode) {
+  const rawAttributes = node.attributes ?? {};
+  const label =
+    node.type === "containerDirective"
+      ? getDirectiveLabel(node.children ?? []).label
+      : getInlineDirectiveLabel(node.children);
+  const caption =
+    rawAttributes.caption ??
+    (node.type === "containerDirective"
+      ? extractTextFromNodes(getDirectiveLabel(node.children ?? []).children).trim() || undefined
+      : undefined);
+  const attributes = [
+    buildAttribute("src", rawAttributes.src),
+    buildAttribute("title", rawAttributes.title ?? label),
+    buildAttribute("caption", caption),
+    buildAttribute("type", rawAttributes.type),
+    buildAttribute("ratio", rawAttributes.ratio),
+    buildAttribute("height", rawAttributes.height),
+    buildAttribute("allow", rawAttributes.allow),
+    buildAttribute("poster", rawAttributes.poster),
+  ].filter(Boolean) as MdxAttribute[];
+
+  return buildFlowElement("PreviewFrame", attributes);
+}
+
+function transformReleaseItem(node: DirectiveNode) {
+  const rawAttributes = node.attributes ?? {};
+  const { label, children } = getDirectiveLabel(node.children ?? []);
+  const attributes = [
+    buildAttribute("version", rawAttributes.version),
+    buildAttribute("title", rawAttributes.title ?? label),
+    buildAttribute("date", rawAttributes.date),
+    buildAttribute("status", rawAttributes.status),
+  ].filter(Boolean) as MdxAttribute[];
+
+  return buildFlowElement("ReleaseItem", attributes, transformChildNodes(children));
+}
+
+function transformTimeline(node: DirectiveNode) {
+  const children = node.children ?? [];
+  const bodyChildren = children
+    .map((child) => {
+      if (child?.type === "containerDirective" && RELEASE_ITEM_NAMES.has(child.name ?? "")) {
+        return transformReleaseItem(child as DirectiveNode);
+      }
+      return transformChildNode(child);
+    })
+    .flat();
+
+  return buildFlowElement("Timeline", [], bodyChildren);
+}
+
+function transformChildNode(node: any): Array<any> {
+  if (!node) {
+    return [];
+  }
+
+  if (node.type === "containerDirective") {
+    if (ENDPOINT_NAMES.has(node.name ?? "")) {
+      return [transformEndpoint(node as DirectiveNode)];
+    }
+    if (PARAM_TABLE_NAMES.has(node.name ?? "")) {
+      return [transformParamTable(node as DirectiveNode)];
+    }
+    if (RESPONSE_SCHEMA_NAMES.has(node.name ?? "")) {
+      return [transformResponseSchema(node as DirectiveNode)];
+    }
+    if (SCHEMA_FIELD_NAMES.has(node.name ?? "")) {
+      return [transformSchemaField(node as DirectiveNode)];
+    }
+    if (DO_DONT_NAMES.has(node.name ?? "")) {
+      return [transformDoDont(node as DirectiveNode)];
+    }
+    if (DO_ITEM_NAMES.has(node.name ?? "")) {
+      return [transformDoItem(node as DirectiveNode, "DoItem")];
+    }
+    if (DONT_ITEM_NAMES.has(node.name ?? "")) {
+      return [transformDoItem(node as DirectiveNode, "DontItem")];
+    }
+    if (VERSION_GATE_NAMES.has(node.name ?? "")) {
+      return [transformVersionGate(node as DirectiveNode)];
+    }
+    if (COMMAND_GROUP_NAMES.has(node.name ?? "")) {
+      return [transformCommandGroup(node as DirectiveNode)];
+    }
+    if (COMMAND_ITEM_NAMES.has(node.name ?? "")) {
+      return [transformCommandItem(node as DirectiveNode)];
+    }
+    if (PREVIEW_FRAME_NAMES.has(node.name ?? "")) {
+      return [transformPreviewFrame(node as DirectiveNode)];
+    }
+    if (TIMELINE_NAMES.has(node.name ?? "")) {
+      return [transformTimeline(node as DirectiveNode)];
+    }
+    if (RELEASE_ITEM_NAMES.has(node.name ?? "")) {
+      return [transformReleaseItem(node as DirectiveNode)];
+    }
+  }
+
+  if (node.type === "leafDirective") {
+    if (PARAM_FIELD_NAMES.has(node.name ?? "")) {
+      return [transformParamField(node as LeafDirectiveNode)];
+    }
+    if (SCHEMA_FIELD_NAMES.has(node.name ?? "")) {
+      return [transformSchemaField(node as LeafDirectiveNode)];
+    }
+    if (VERSION_GATE_NAMES.has(node.name ?? "")) {
+      return [transformVersionGate(node as LeafDirectiveNode)];
+    }
+    if (PREVIEW_FRAME_NAMES.has(node.name ?? "")) {
+      return [transformPreviewFrame(node as LeafDirectiveNode)];
+    }
+  }
+
+  return [node];
+}
+
+function transformChildNodes(nodes: Array<any>) {
+  return nodes.map((child) => transformChildNode(child)).flat();
+}
+
 export default function remarkDocsComponents() {
   return (tree: any) => {
     visit(tree, "blockquote", (node: BlockquoteNode, index, parent) => {
@@ -662,6 +1032,51 @@ export default function remarkDocsComponents() {
 
     visit(tree, "containerDirective", (node: DirectiveNode, index, parent) => {
       if (!parent || typeof index !== "number") {
+        return;
+      }
+
+      if (ENDPOINT_NAMES.has(node.name ?? "")) {
+        parent.children[index] = transformEndpoint(node);
+        return;
+      }
+
+      if (PARAM_TABLE_NAMES.has(node.name ?? "")) {
+        parent.children[index] = transformParamTable(node);
+        return;
+      }
+
+      if (RESPONSE_SCHEMA_NAMES.has(node.name ?? "")) {
+        parent.children[index] = transformResponseSchema(node);
+        return;
+      }
+
+      if (SCHEMA_FIELD_NAMES.has(node.name ?? "")) {
+        parent.children[index] = transformSchemaField(node);
+        return;
+      }
+
+      if (DO_DONT_NAMES.has(node.name ?? "")) {
+        parent.children[index] = transformDoDont(node);
+        return;
+      }
+
+      if (VERSION_GATE_NAMES.has(node.name ?? "")) {
+        parent.children[index] = transformVersionGate(node);
+        return;
+      }
+
+      if (COMMAND_GROUP_NAMES.has(node.name ?? "")) {
+        parent.children[index] = transformCommandGroup(node);
+        return;
+      }
+
+      if (PREVIEW_FRAME_NAMES.has(node.name ?? "")) {
+        parent.children[index] = transformPreviewFrame(node);
+        return;
+      }
+
+      if (TIMELINE_NAMES.has(node.name ?? "")) {
+        parent.children[index] = transformTimeline(node);
         return;
       }
 
@@ -710,6 +1125,31 @@ export default function remarkDocsComponents() {
         return;
       }
       parent.children[index] = transformAnnotation(node, true);
+    });
+
+    visit(tree, "leafDirective", (node: LeafDirectiveNode, index, parent) => {
+      if (!parent || typeof index !== "number") {
+        return;
+      }
+
+      if (PARAM_FIELD_NAMES.has(node.name ?? "")) {
+        parent.children[index] = transformParamField(node);
+        return;
+      }
+
+      if (SCHEMA_FIELD_NAMES.has(node.name ?? "")) {
+        parent.children[index] = transformSchemaField(node);
+        return;
+      }
+
+      if (VERSION_GATE_NAMES.has(node.name ?? "")) {
+        parent.children[index] = transformVersionGate(node);
+        return;
+      }
+
+      if (PREVIEW_FRAME_NAMES.has(node.name ?? "")) {
+        parent.children[index] = transformPreviewFrame(node);
+      }
     });
 
     const children = tree.children;

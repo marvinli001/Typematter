@@ -20,6 +20,10 @@ const FALLBACK_LANGUAGES: LanguageOption[] = [
 
 let cachedConfig: I18nConfig | null = null;
 
+function shouldUseCache() {
+  return process.env.NODE_ENV === "production";
+}
+
 function getConfiguredLanguages() {
   const fromConfig = siteConfig.i18n?.languages;
   const source = fromConfig && fromConfig.length > 0 ? fromConfig : FALLBACK_LANGUAGES;
@@ -38,7 +42,7 @@ function getConfiguredLanguages() {
 }
 
 export function getI18nConfig(): I18nConfig {
-  if (cachedConfig) {
+  if (shouldUseCache() && cachedConfig) {
     return cachedConfig;
   }
 
@@ -60,8 +64,11 @@ export function getI18nConfig(): I18nConfig {
 
   const detected = configured.filter((lang) => available.has(lang.code));
   if (detected.length === 0) {
-    cachedConfig = { enabled: false, languages: [], defaultLanguage: null };
-    return cachedConfig;
+    const resolved = { enabled: false, languages: [], defaultLanguage: null };
+    if (shouldUseCache()) {
+      cachedConfig = resolved;
+    }
+    return resolved;
   }
 
   const preferred = siteConfig.i18n?.defaultLanguage;
@@ -69,8 +76,11 @@ export function getI18nConfig(): I18nConfig {
     (preferred && detected.find((lang) => lang.code === preferred)?.code) ??
     detected[0].code;
 
-  cachedConfig = { enabled: true, languages: detected, defaultLanguage };
-  return cachedConfig;
+  const resolved = { enabled: true, languages: detected, defaultLanguage };
+  if (shouldUseCache()) {
+    cachedConfig = resolved;
+  }
+  return resolved;
 }
 
 export function clearI18nCache() {

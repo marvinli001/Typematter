@@ -1,0 +1,29 @@
+---
+title: Deployment
+order: 3
+section: Get started
+pager: true
+---
+
+Typematter currently targets Next.js static export mode, which writes the final site into `out/`.
+
+## Recommended flow
+
+::: steps
+1. Set `TYPEMATTER_SITE_URL=https://docs.example.com`.
+2. Run `npm run build`.
+3. Deploy the `out/` directory to any static host.
+:::
+
+## Good hosting targets
+
+<Cards columns="3" mobileColumns="1">
+  <Card title="Vercel" description="Build and publish the static output directly." />
+  <Card title="Cloudflare Pages" description="Good fit for globally distributed static hosting." />
+  <Card title="Nginx / OSS / S3" description="Anything that can serve HTML, CSS, and JS works." />
+</Cards>
+
+<Details summary="Why TYPEMATTER_SITE_URL matters">
+  It is used to emit absolute URLs in `robots.txt` and `sitemap.xml`.
+</Details>
+

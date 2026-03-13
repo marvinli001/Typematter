@@ -8,6 +8,8 @@ version: 0.3.0-rc
 
 文档组件用于表达语义，例如提示、对比、结构块与列布局。多数组件既可用 MDX 标签，也支持 Markdown 指令。
 
+如果你主要关心写法速查，而不是视觉效果，直接看[指令速查表](/cn/core-concepts/authoring-syntax)。
+
 ## Callout
 
 Callout 用于提示类信息，建议按语义选择不同级别：
@@ -257,4 +259,201 @@ static = true
 | Image generation | no | yes |
 | Reasoning summaries | no | yes |
 :::
+
+## Endpoint / ParamTable / ResponseSchema
+
+这组组件适合 API 页面，重点是把接口头、参数、返回结构拆成稳定语义块，而不是堆散乱表格。
+
+<Endpoint
+  method="GET"
+  path="/v1/docs/[slug]"
+  title="获取文档页面"
+  summary="按路由返回 registry 中的页面元信息。"
+  auth="optional"
+  since="0.3.0-rc"
+>
+  <ParamTable title="Path params">
+    <ParamField name="slug" type="string[]" required>
+      文档路由片段数组。
+    </ParamField>
+    <ParamField name="lang" type='"cn" | "en"' defaultValue="cn">
+      语言代码。
+    </ParamField>
+  </ParamTable>
+
+  <ResponseSchema title="200 Response" code="200" mediaType="application/json">
+    <SchemaField name="title" type="string" required description="页面标题" />
+    <SchemaField name="section" type="string" required description="所属分组" />
+    <SchemaField name="toc" type="TocItem[]" description="标题目录">
+      <SchemaField name="id" type="string" required description="锚点 id" />
+      <SchemaField name="title" type="string" required description="标题文本" />
+      <SchemaField name="level" type="number" required description="标题层级" />
+    </SchemaField>
+  </ResponseSchema>
+</Endpoint>
+
+### 指令语法
+
+~~~mdx
+:::endpoint{method="GET" path="/v1/docs/[slug]" title="获取文档页面" summary="按路由返回 registry 中的页面元信息。" auth="optional" since="0.3.0-rc"}
+:::param-table[Path params]
+::param-field[slug]{type="string[]" required="true" description="文档路由片段数组。"}
+::param-field[lang]{type='"cn" | "en"' default="cn" description="语言代码。"}
+:::
+
+:::response-schema[200 Response]{code="200" mediaType="application/json"}
+::schema-field[title]{type="string" required="true" description="页面标题"}
+::schema-field[section]{type="string" required="true" description="所属分组"}
+:::schema-field[toc]{type="TocItem[]" description="标题目录"}
+::schema-field[id]{type="string" required="true" description="锚点 id"}
+::schema-field[title]{type="string" required="true" description="标题文本"}
+::schema-field[level]{type="number" required="true" description="标题层级"}
+:::
+:::
+:::
+~~~
+
+## DoDont
+
+用于最佳实践、迁移规范、代码 review 规则这类非常高频的“该做 / 不该做”表达。
+
+<DoDont title="写 API 文档时">
+  <DoItem title="保持字段名稳定">
+    对外字段名、枚举值和错误码应该保持长期稳定。
+  </DoItem>
+  <DoItem title="写清错误分支">
+    除了 happy path，也要明确 4xx / 5xx 的返回形态。
+  </DoItem>
+  <DontItem title="不要把 breaking change 埋在正文里">
+    版本破坏性变化应有显式标记，而不是只在长段落里顺带提到。
+  </DontItem>
+  <DontItem title="不要只给示例不给结构">
+    示例响应不能替代字段级结构定义。
+  </DontItem>
+</DoDont>
+
+### 指令语法
+
+~~~mdx
+:::do-dont[写 API 文档时]
+:::do[保持字段名稳定]
+对外字段名、枚举值和错误码应该保持长期稳定。
+:::
+
+:::dont[不要只给示例不给结构]
+示例响应不能替代字段级结构定义。
+:::
+:::
+~~~
+
+## VersionGate
+
+用于明确能力从何时可用、何时弃用、何时移除。
+
+<VersionGate
+  title="Legacy search index"
+  since="0.2.0"
+  deprecated="0.4.0"
+  removedIn="1.0.0"
+  replacement="standard search manifest"
+>
+  当一个能力进入迁移期时，不要只写一句“未来会调整”，直接把版本策略贴在能力块附近。
+</VersionGate>
+
+### 指令语法
+
+~~~mdx
+:::version-gate[Legacy search index]{since="0.2.0" deprecated="0.4.0" removedIn="1.0.0" replacement="standard search manifest"}
+当一个能力进入迁移期时，不要只写一句“未来会调整”，直接把版本策略贴在能力块附近。
+:::
+~~~
+
+## CommandGroup
+
+适合按包管理器、操作系统、运行环境切换命令。
+
+<CommandGroup title="安装 Typematter">
+  <Command label="pnpm" description="推荐">
+    {`pnpm install
+pnpm dev`}
+  </Command>
+  <Command label="npm">
+    {`npm install
+npm run dev`}
+  </Command>
+  <Command label="yarn">
+    {`yarn
+yarn dev`}
+  </Command>
+  <Command label="bun">
+    {`bun install
+bun run dev`}
+  </Command>
+</CommandGroup>
+
+### 指令语法
+
+~~~mdx
+:::command-group[安装 Typematter]
+:::command[pnpm]{description="推荐"}
+```bash
+pnpm install
+pnpm dev
+```
+:::
+
+:::command[npm]
+```bash
+npm install
+npm run dev
+```
+:::
+:::
+~~~
+
+## PreviewFrame
+
+用于嵌入截图、录屏、产品 demo 或同源 iframe 页面。
+
+<PreviewFrame
+  src="/cn/get-started/quickstart/"
+  title="Quickstart 页面预览"
+  caption="适合放同源页面预览；如果是截图或录屏，也可以传图片或视频地址。"
+/>
+
+### 指令语法
+
+~~~mdx
+::preview-frame[Quickstart 页面预览]{src="/cn/get-started/quickstart/" caption="适合放同源页面预览；如果是截图或录屏，也可以传图片或视频地址。"}
+~~~
+
+## Timeline / ReleaseItem
+
+适合版本演进、迁移路线、breaking changes 编年说明。
+
+<Timeline>
+  <ReleaseItem version="0.1.0" date="2026-01-26" title="初版 shell">
+    建立静态文档壳、MDX 内容读取和基础导航。
+  </ReleaseItem>
+  <ReleaseItem version="0.2.0" date="2026-02-03" title="搜索与 Ask AI" status="Beta">
+    引入标准搜索索引与可选的 Ask AI 集成。
+  </ReleaseItem>
+  <ReleaseItem version="0.3.0-rc" date="2026-03-12" title="Starter 与部署能力" status="Current">
+    增加 `init` starter 流程、部署说明，以及更完整的 API 文档组件集。
+  </ReleaseItem>
+</Timeline>
+
+### 指令语法
+
+~~~mdx
+:::timeline
+:::release-item[初版 shell]{version="0.1.0" date="2026-01-26"}
+建立静态文档壳、MDX 内容读取和基础导航。
+:::
+
+:::release-item[Starter 与部署能力]{version="0.3.0-rc" date="2026-03-12" status="Current"}
+增加 `init` starter 流程、部署说明，以及更完整的 API 文档组件集。
+:::
+:::
+~~~
 

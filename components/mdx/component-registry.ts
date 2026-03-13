@@ -22,6 +22,20 @@ const COMPONENT_LOADERS: Record<string, () => Promise<unknown>> = {
   Card: async () => (await import("./Cards")).Card,
   LinkButton: async () => (await import("./LinkButton")).LinkButton,
   Badge: async () => (await import("./Badge")).Badge,
+  Endpoint: async () => (await import("./ApiDocs")).Endpoint,
+  ParamTable: async () => (await import("./ApiDocs")).ParamTable,
+  ParamField: async () => (await import("./ApiDocs")).ParamField,
+  ResponseSchema: async () => (await import("./ApiDocs")).ResponseSchema,
+  SchemaField: async () => (await import("./ApiDocs")).SchemaField,
+  DoDont: async () => (await import("./DoDont")).DoDont,
+  DoItem: async () => (await import("./DoDont")).DoItem,
+  DontItem: async () => (await import("./DoDont")).DontItem,
+  VersionGate: async () => (await import("./VersionGate")).VersionGate,
+  CommandGroup: async () => (await import("./CommandGroup")).CommandGroup,
+  Command: async () => (await import("./CommandGroup")).Command,
+  PreviewFrame: async () => (await import("./PreviewFrame")).PreviewFrame,
+  Timeline: async () => (await import("./Timeline")).Timeline,
+  ReleaseItem: async () => (await import("./Timeline")).ReleaseItem,
   CodeBlock: async () => (await import("./CodeBlock")).CodeBlock,
 };
 
@@ -32,6 +46,11 @@ const COMPONENT_DEPENDENCIES: Record<string, string[]> = {
   Steps: ["Step"],
   FileTree: ["FileTreeItem"],
   Cards: ["Card"],
+  ParamTable: ["ParamField"],
+  ResponseSchema: ["SchemaField"],
+  DoDont: ["DoItem", "DontItem"],
+  CommandGroup: ["Command"],
+  Timeline: ["ReleaseItem"],
 };
 
 function expandDependencies(components: Set<string>) {
@@ -73,4 +92,3 @@ export async function resolveMdxComponents(
   Object.assign(resolved, pluginComponents);
   return resolved;
 }
-

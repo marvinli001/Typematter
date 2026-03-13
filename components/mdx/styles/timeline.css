@@ -1,0 +1,89 @@
+.timeline {
+  position: relative;
+  margin: 1.2rem 0;
+  padding-left: 1.4rem;
+}
+
+.timeline::before {
+  content: "";
+  position: absolute;
+  left: 0.38rem;
+  top: 0.4rem;
+  bottom: 0.4rem;
+  width: 2px;
+  border-radius: 999px;
+  background: var(--border);
+}
+
+.release-item {
+  position: relative;
+  padding-bottom: 1rem;
+}
+
+.release-item:last-child {
+  padding-bottom: 0;
+}
+
+.release-marker {
+  position: absolute;
+  left: -1.4rem;
+  top: 0.5rem;
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 2px solid var(--accent);
+  box-shadow: 0 0 0 4px var(--bg);
+}
+
+.release-card {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  padding: 0.95rem 1rem;
+}
+
+.release-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+}
+
+.release-heading,
+.release-meta {
+  display: flex;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.release-version {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.12);
+  color: var(--accent);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.release-title {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.release-date,
+.release-status {
+  font-size: 0.8rem;
+  color: var(--text-soft);
+}
+
+.release-body {
+  margin-top: 0.7rem;
+  color: var(--text-muted);
+}
