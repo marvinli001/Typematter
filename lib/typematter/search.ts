@@ -2,6 +2,9 @@ export type SearchIndexItem = {
   title: string;
   href: string;
   section?: string;
+  type?: string;
+  version?: string | number;
+  aliases?: string[];
   content?: string;
   language?: string;
 };
@@ -11,12 +14,16 @@ export type SearchDocRecord = {
   title: string;
   href: string;
   section?: string;
+  type?: string;
+  version?: string | number;
   tags?: string[];
+  aliases?: string[];
   headings?: string[];
   snippet?: string;
   language?: string;
   titleNormalized: string;
   headingNormalized: string;
+  aliasesNormalized: string;
   searchNormalized: string;
 };
 
@@ -26,6 +33,7 @@ export type SearchPosting = {
   h?: number;
   s?: number;
   g?: number;
+  a?: number;
   b?: number;
 };
 

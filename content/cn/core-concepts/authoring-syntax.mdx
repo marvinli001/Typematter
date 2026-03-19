@@ -1,12 +1,21 @@
 ---
 title: 指令速查表
 order: 4
-section: Core concepts
+section: 核心概念
+type: guide
 status: experimental
 version: 0.3.0-rc
+description: Typematter Markdown 指令速查表，帮助内容作者稳定编写语义化文档。
+aliases:
+  - 指令语法
+  - markdown 指令
 ---
 
 这页是 Typematter 的 Markdown 指令速查表。需要看组件的实际渲染效果时，再跳到[组件页](/cn/core-concepts/components)。
+
+<Note title="配合组件页一起看">
+这页适合查写法；如果你想确认组件的渲染效果和留白节奏，再切到组件页。
+</Note>
 
 ## 基本规则
 
@@ -18,35 +27,35 @@ version: 0.3.0-rc
 
 ## 指令一览
 
-| Directive | 类型 | 用途 |
+| 指令 | 类型 | 用途 |
 | --- | --- | --- |
-| `details` | container | 折叠说明 / FAQ |
-| `steps` | container | 步骤流程 |
-| `file-tree` | container | 文件树 |
-| `cards` | container | 卡片入口 |
-| `code-group` | container | 代码或富内容切换 |
-| `tab` | container | `code-group` 子面板 |
-| `feature-matrix` | container | 能力矩阵表格 |
-| `badge` | text | 行内状态标签 |
-| `annotation` | text | 行内注释提示 |
-| `endpoint` | container | API 接口头信息 |
-| `param-table` | container | 参数表 |
-| `param-field` | leaf | 单个参数字段 |
-| `response-schema` | container | 返回结构 |
-| `schema-field` | leaf / container | 返回字段，可嵌套 |
-| `do-dont` | container | 最佳实践对比 |
-| `do` | container | 正向建议项 |
-| `dont` | container | 反向建议项 |
-| `version-gate` | container | 版本策略说明 |
-| `command-group` | container | 命令切换 |
-| `command` | container | 命令面板 |
-| `preview-frame` | leaf | 图片 / 视频 / iframe 预览 |
-| `timeline` | container | 时间线 |
-| `release-item` | container | 时间线条目 |
+| `details` | 容器 | 折叠说明 / FAQ |
+| `steps` | 容器 | 步骤流程 |
+| `file-tree` | 容器 | 文件树 |
+| `cards` | 容器 | 卡片入口 |
+| `code-group` | 容器 | 代码或富内容切换 |
+| `tab` | 容器 | `code-group` 子面板 |
+| `feature-matrix` | 容器 | 能力矩阵表格 |
+| `badge` | 行内 | 行内状态标签 |
+| `annotation` | 行内 | 行内注释提示 |
+| `endpoint` | 容器 | API 接口头信息 |
+| `param-table` | 容器 | 参数表 |
+| `param-field` | 叶子 | 单个参数字段 |
+| `response-schema` | 容器 | 返回结构 |
+| `schema-field` | 叶子 / 容器 | 返回字段，可嵌套 |
+| `do-dont` | 容器 | 最佳实践对比 |
+| `do` | 容器 | 正向建议项 |
+| `dont` | 容器 | 反向建议项 |
+| `version-gate` | 容器 | 版本策略说明 |
+| `command-group` | 容器 | 命令切换 |
+| `command` | 容器 | 命令面板 |
+| `preview-frame` | 叶子 | 图片 / 视频 / iframe 预览 |
+| `timeline` | 容器 | 时间线 |
+| `release-item` | 容器 | 时间线条目 |
 
 ## 结构与布局
 
-### Details / Steps / File Tree
+### Details / Steps / File Tree 结构块
 
 ~~~mdx
 :::details 为什么这样设计
@@ -67,7 +76,7 @@ version: 0.3.0-rc
 :::
 ~~~
 
-### Cards / Feature Matrix
+### Cards / FeatureMatrix
 
 ~~~mdx
 :::cards
@@ -76,15 +85,15 @@ version: 0.3.0-rc
 :::
 
 :::feature-matrix
-| 能力 | Free | Pro |
+| 能力 | 免费版 | 专业版 |
 | --- | --- | --- |
-| 静态导出 | yes | yes |
-| Ask AI | optional | optional |
-| 双语文档 | yes | yes |
+| 静态导出 | 支持 | 支持 |
+| Ask AI | 可选 | 可选 |
+| 双语文档 | 支持 | 支持 |
 :::
 ~~~
 
-### Code Group / Tab
+### CodeGroup / Tab
 
 ~~~mdx
 :::code-group
@@ -129,12 +138,12 @@ Typematter 当前处于 :badge[实验中]{variant="note"} 阶段。
 
 ~~~mdx
 :::endpoint{method="GET" path="/v1/docs/[slug]" title="获取文档页面" summary="按路由返回页面元信息。" auth="optional" since="0.3.0-rc"}
-:::param-table[Path params]
+:::param-table[路径参数]
 ::param-field[slug]{type="string[]" required="true" description="文档路由片段数组。"}
 ::param-field[lang]{type='"cn" | "en"' default="cn" description="语言代码。"}
 :::
 
-:::response-schema[200 Response]{code="200" mediaType="application/json"}
+:::response-schema[200 响应]{code="200" mediaType="application/json"}
 ::schema-field[title]{type="string" required="true" description="页面标题"}
 :::schema-field[toc]{type="TocItem[]" description="标题目录"}
 ::schema-field[id]{type="string" required="true" description="锚点 id"}
@@ -161,7 +170,7 @@ Typematter 当前处于 :badge[实验中]{variant="note"} 阶段。
 公开字段名和错误码应保持长期稳定。
 :::
 
-:::dont[不要把 breaking change 藏进正文]
+:::dont[不要把破坏性变更藏进正文]
 迁移说明应该显式标记。
 :::
 :::
@@ -197,10 +206,10 @@ npm run dev
 :::
 :::
 
-::preview-frame[Quickstart 页面预览]{src="/cn/get-started/quickstart/" caption="同源页面、截图或录屏都可以。"}
+::preview-frame[快速开始页面预览]{src="/cn/get-started/quickstart/" caption="同源页面、截图或录屏都可以。"}
 
 :::timeline
-:::release-item[Starter 与部署能力]{version="0.3.0-rc" date="2026-03-12" status="Current"}
+:::release-item[Starter 与部署能力]{version="0.3.0-rc" date="2026-03-12" status="当前"}
 增加 `init` starter 流程、部署说明，以及更完整的 API 组件。
 :::
 :::
@@ -214,7 +223,7 @@ npm run dev
 
 ## 什么时候用 JSX
 
-这套 directive 语法适合让内容作者保持纯 Markdown 写作体验。遇到下面这几种情况，直接写 MDX JSX 更稳：
+这套指令语法适合让内容作者保持纯 Markdown 写作体验。遇到下面这几种情况，直接写 MDX JSX 更稳：
 
 - 需要非常复杂的嵌套结构
 - 需要把 React children 精确放到某个插槽

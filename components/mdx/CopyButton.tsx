@@ -1,12 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import { resolveMdxUiCopy, type MdxUiCopy } from "./MdxUiContext";
 
 type CopyButtonProps = {
   text: string;
+  uiCopy?: MdxUiCopy;
 };
 
-export default function CopyButton({ text }: CopyButtonProps) {
+export default function CopyButton({ text, uiCopy }: CopyButtonProps) {
+  const copy = uiCopy ?? resolveMdxUiCopy();
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -28,7 +31,7 @@ export default function CopyButton({ text }: CopyButtonProps) {
       className={`icon-button copy-button${copied ? " copied" : ""}`}
       type="button"
       onClick={handleCopy}
-      aria-label={copied ? "Copied" : "Copy"}
+      aria-label={copied ? copy.copyButton.copied : copy.copyButton.copy}
     >
       {copied ? (
         <svg viewBox="0 0 24 24" aria-hidden="true" className="icon">

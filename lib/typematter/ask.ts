@@ -9,6 +9,10 @@ export type AskIndexItem = {
   contentRoute: string;
   contentPath: string;
   language?: string;
+  type?: string;
+  version?: string | number;
+  versionGroup?: string;
+  aliases?: string[];
   anchor: string;
   heading?: string;
   content: string;
@@ -20,6 +24,9 @@ export type AskRequest = {
   scope: AskScope;
   currentRoute: string;
   currentSection: string;
+  currentType?: string;
+  currentVersion?: string | number;
+  currentVersionGroup?: string;
   siteContext: {
     title: string;
   };
@@ -30,6 +37,7 @@ export type AskSource = {
   title: string;
   href: string;
   anchor: string;
+  heading?: string;
   snippet: string;
   score?: number;
 };

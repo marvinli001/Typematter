@@ -1,24 +1,25 @@
 import navConfig from "../nav.config";
 import { normalizeRoute } from "./docs";
 import { getI18nConfig } from "./i18n";
+import type { LocalizedText } from "./typematter/config";
 import { loadRegistry } from "./typematter/build-registry";
 
 export type NavItemConfig =
   | {
       type: "doc";
       slug: string;
-      title?: string;
+      title?: LocalizedText;
       hidden?: boolean;
     }
   | {
       type: "external";
-      title: string;
+      title: LocalizedText;
       href: string;
       hidden?: boolean;
     };
 
 export type NavGroupConfig = {
-  title: string;
+  title: LocalizedText;
   items: NavItemConfig[];
 };
 
@@ -53,6 +54,35 @@ function normalizeConfigSlug(slug: string) {
   }
 
   return normalizeRoute(slug);
+}
+
+function resolveLocalizedText(
+  value: LocalizedText | undefined,
+  language: string | undefined,
+  fallback?: string
+) {
+  if (!value) {
+    return fallback ?? "";
+  }
+
+  if (typeof value === "string") {
+    return value;
+  }
+
+  if (language && typeof value[language] === "string") {
+    return value[language] as string;
+  }
+
+  const i18n = getI18nConfig();
+  const defaultLanguage = i18n.defaultLanguage;
+  if (defaultLanguage && typeof value[defaultLanguage] === "string") {
+    return value[defaultLanguage] as string;
+  }
+
+  const firstValue = Object.values(value).find(
+    (entry): entry is string => typeof entry === "string" && entry.trim().length > 0
+  );
+  return firstValue ?? fallback ?? "";
 }
 
 function sortDocs<T extends { order: number; title: string }>(docs: T[]) {
@@ -151,7 +181,7 @@ export function getNavData(
       if (item.type === "external") {
         items.push({
           type: "external",
-          title: item.title,
+          title: resolveLocalizedText(item.title, resolvedLanguage),
           href: item.href,
         });
         return;
@@ -166,7 +196,7 @@ export function getNavData(
       usedRoutes.add(doc.route);
       items.push({
         type: "doc",
-        title: item.title ?? doc.title,
+        title: resolveLocalizedText(item.title, resolvedLanguage, doc.title),
         href: doc.route,
         status: doc.status,
         version: doc.version,
@@ -174,7 +204,7 @@ export function getNavData(
     });
 
     if (items.length > 0) {
-      groups.push({ title: group.title, items });
+      groups.push({ title: resolveLocalizedText(group.title, resolvedLanguage), items });
     }
   });
 

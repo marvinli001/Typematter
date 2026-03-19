@@ -33,6 +33,9 @@ type AskContext = {
   currentRoute: string;
   currentSection: string;
   title: string;
+  currentType?: string;
+  currentVersion?: string | number;
+  currentVersionGroup?: string;
 };
 
 type AskUiError = {
@@ -150,6 +153,7 @@ function normalizeSources(sources: AskSource[]) {
       title: source.title,
       href: source.href,
       anchor: source.anchor || "top",
+      heading: source.heading,
       snippet: source.snippet || "",
       score: source.score,
     }));
@@ -285,6 +289,9 @@ export default function AskPanel({
       scope: askScope,
       currentRoute: askContext.currentRoute,
       currentSection: askContext.currentSection,
+      currentType: askContext.currentType,
+      currentVersion: askContext.currentVersion,
+      currentVersionGroup: askContext.currentVersionGroup,
       siteContext: {
         title: askContext.title,
       },
@@ -530,6 +537,7 @@ export default function AskPanel({
                       >
                         <span className="ask-source-title">
                           [S{index + 1}] {source.title}
+                          {source.heading ? ` · ${source.heading}` : ""}
                         </span>
                         <span className="ask-source-snippet">{source.snippet}</span>
                       </a>

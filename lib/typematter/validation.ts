@@ -18,12 +18,15 @@ import type {
   FrontmatterFieldRule,
   FrontmatterSchemaRule,
   FrontmatterTypeRule,
+  LocalizedText,
   ValidationRuleId,
   ValidationRuleLevel,
   ValidationConfig,
 } from "./config";
 import type { TypematterPlugin } from "./plugin";
+import { collectComponents } from "./mdx-components";
 import { createBuildContext, getConfiguredPlugins } from "./plugin-runner";
+import { isLikelySharedNavTitle } from "./search-utils";
 
 type ValidationIssue = {
   type: string;
@@ -54,11 +57,19 @@ const ALLOWED_FIELDS = new Set([
   "title",
   "order",
   "section",
+  "type",
   "status",
   "version",
   "tags",
   "slug",
   "description",
+  "aliases",
+  "versionGroup",
+  "changelog",
+  "supersedes",
+  "diffWith",
+  "deprecatedIn",
+  "removedIn",
   "hidden",
   "pager",
 ]);
@@ -77,6 +88,7 @@ const DEFAULT_RULES: Record<ValidationRuleId, ValidationRuleLevel> = {
   missingTranslations: "error",
   headingDepth: "error",
   frontmatterSchema: "error",
+  docTypeConventions: "error",
 };
 
 const i18nConfig = getI18nConfig();
@@ -193,14 +205,150 @@ const DEFAULT_FRONTMATTER_SCHEMA: Record<string, FrontmatterFieldRule> = {
   title: { required: true, type: "string" },
   order: { required: true, type: "number" },
   section: { required: true, type: "string" },
+  type: { type: "string" },
   status: { type: "string" },
   version: { type: "string|number" },
   tags: { type: "string[]" },
   slug: { type: "string" },
   description: { type: "string" },
+  aliases: { type: "string[]" },
+  versionGroup: { type: "string" },
+  changelog: { type: "string" },
+  supersedes: { type: "string" },
+  diffWith: { type: "string" },
+  deprecatedIn: { type: "string|number" },
+  removedIn: { type: "string|number" },
   hidden: { type: "boolean" },
   pager: { type: "boolean" },
 };
+
+function getRequiredTranslationFields(config?: ValidationConfig) {
+  return config?.translation?.requiredFields ?? ["title", "section", "description", "type"];
+}
+
+function getRequiredTranslationLanguages(config?: ValidationConfig) {
+  const configured = config?.translation?.requiredLanguages;
+  const requested =
+    configured && configured.length > 0
+      ? configured
+      : i18nConfig.languages.map((language) => language.code);
+  return requested.filter((code) =>
+    i18nConfig.languages.some((language) => language.code === code)
+  );
+}
+
+function validateLocalizedTitleValue(
+  value: LocalizedText | undefined,
+  label: string,
+  report: ValidationReport,
+  config?: ValidationConfig,
+  options?: ValidateOptions
+) {
+  const requiredLanguages = getRequiredTranslationLanguages(config);
+  if (requiredLanguages.length <= 1) {
+    return;
+  }
+
+  const sharedTitles = config?.translation?.sharedNavTitles ?? [];
+  if (typeof value === "string") {
+    if (!isLikelySharedNavTitle(value, sharedTitles)) {
+      reportIssue(
+        "missingTranslations",
+        {
+          type: "i18n-nav-title",
+          message: `${label} 必须提供多语言标题映射`,
+          file: "nav.config.ts",
+        },
+        report,
+        config,
+        options
+      );
+    }
+    return;
+  }
+
+  if (!value || typeof value !== "object") {
+    reportIssue(
+      "missingTranslations",
+      {
+        type: "i18n-nav-title",
+        message: `${label} 缺少标题配置`,
+        file: "nav.config.ts",
+      },
+      report,
+      config,
+      options
+    );
+    return;
+  }
+
+  requiredLanguages.forEach((language) => {
+    const candidate = value[language];
+    if (typeof candidate !== "string" || candidate.trim().length === 0) {
+      reportIssue(
+        "missingTranslations",
+        {
+          type: "i18n-nav-title",
+          message: `${label} 缺少语言标题: ${language}`,
+          file: "nav.config.ts",
+        },
+        report,
+        config,
+        options
+      );
+    }
+  });
+}
+
+function validateLocalizedNavTitles(
+  report: ValidationReport,
+  config?: ValidationConfig,
+  options?: ValidateOptions
+) {
+  if (!i18nConfig.enabled || config?.translation?.requireLocalizedNavTitles === false) {
+    return;
+  }
+
+  navConfig?.groups?.forEach((group, groupIndex) => {
+    validateLocalizedTitleValue(
+      group.title,
+      `导航分组 #${groupIndex + 1}`,
+      report,
+      config,
+      options
+    );
+
+    group.items.forEach((item, itemIndex) => {
+      if (item.type === "external") {
+        validateLocalizedTitleValue(
+          item.title,
+          `导航外链 #${groupIndex + 1}.${itemIndex + 1}`,
+          report,
+          config,
+          options
+        );
+        return;
+      }
+
+      if (item.title !== undefined) {
+        validateLocalizedTitleValue(
+          item.title,
+          `导航文档标题 #${groupIndex + 1}.${itemIndex + 1}`,
+          report,
+          config,
+          options
+        );
+      }
+    });
+  });
+}
+
+function matchesDocTypeRule(pathname: string, rule: NonNullable<ValidationConfig["docTypes"]>[string]) {
+  const included =
+    !rule.include || rule.include.length === 0 ? true : matchPath(pathname, rule.include);
+  const excluded = matchPath(pathname, rule.exclude);
+  return included && !excluded;
+}
 
 function getSchemaRulesForPath(pathname: string, rules: FrontmatterSchemaRule[]) {
   return rules.filter((rule) => {
@@ -611,6 +759,7 @@ function validateMissingTranslations(
   if (!baseline) {
     return;
   }
+  const requiredFields = getRequiredTranslationFields(config);
 
   baseline.forEach((baseDoc, contentPath) => {
     if (isIgnoredTranslationPath(contentPath, config)) {
@@ -636,13 +785,8 @@ function validateMissingTranslations(
         return;
       }
 
-      const requiredFields: Array<keyof typeof translated.frontmatter> = [
-        "title",
-        "order",
-        "section",
-      ];
       requiredFields.forEach((field) => {
-        const value = translated.frontmatter[field];
+        const value = translated.frontmatter[field as keyof typeof translated.frontmatter];
         if (value === undefined || value === null || value === "") {
           reportIssue(
             "missingTranslations",
@@ -688,6 +832,90 @@ function validateMissingTranslations(
         );
       }
     });
+  });
+
+  validateLocalizedNavTitles(report, config, options);
+}
+
+function validateDocTypeConventions(
+  report: ValidationReport,
+  config?: ValidationConfig,
+  options?: ValidateOptions
+) {
+  if (!shouldRunRule("docTypeConventions", config, options)) {
+    return;
+  }
+
+  const docTypes = config?.docTypes ?? {};
+  const docs = getAllDocEntries();
+
+  docs.forEach((doc) => {
+    const docType = typeof doc.frontmatter.type === "string" ? doc.frontmatter.type.trim() : "";
+    const matchedEntries = Object.entries(docTypes).filter(([, rule]) =>
+      matchesDocTypeRule(doc.relativePath, rule)
+    );
+
+    if (matchedEntries.length > 0 && docType) {
+      const allowed = matchedEntries.some(([type]) => type === docType);
+      if (!allowed) {
+        reportIssue(
+          "docTypeConventions",
+          {
+            type: "doc-type",
+            message: `文档类型与路径模板不匹配: ${docType}`,
+            file: doc.relativePath,
+          },
+          report,
+          config,
+          options
+        );
+      }
+    }
+
+    const activeRule =
+      (docType && docTypes[docType]) ??
+      (matchedEntries.length === 1 ? matchedEntries[0][1] : undefined);
+    if (!activeRule) {
+      return;
+    }
+
+    const usedComponents = collectComponents(doc.content);
+
+    if (
+      activeRule.requiredComponentsAnyOf &&
+      activeRule.requiredComponentsAnyOf.length > 0 &&
+      !activeRule.requiredComponentsAnyOf.some((component) =>
+        usedComponents.includes(component)
+      )
+    ) {
+      const resolvedDocType = docType || matchedEntries[0]?.[0] || "unknown";
+      reportIssue(
+        "docTypeConventions",
+        {
+          type: "doc-type-components",
+          message: `文档类型 ${resolvedDocType} 需要至少一个推荐结构组件: ${activeRule.requiredComponentsAnyOf.join(", ")}`,
+          file: doc.relativePath,
+        },
+        report,
+        config,
+        options
+      );
+    }
+
+    if (
+      activeRule.recommendedComponentsAnyOf &&
+      activeRule.recommendedComponentsAnyOf.length > 0 &&
+      !activeRule.recommendedComponentsAnyOf.some((component) =>
+        usedComponents.includes(component)
+      )
+    ) {
+      const resolvedDocType = docType || matchedEntries[0]?.[0] || "unknown";
+      report.warn({
+        type: "doc-type-components",
+        message: `文档类型 ${resolvedDocType} 建议使用至少一个语义组件: ${activeRule.recommendedComponentsAnyOf.join(", ")}`,
+        file: doc.relativePath,
+      });
+    }
   });
 }
 
@@ -1046,6 +1274,7 @@ export async function validateDocs(options?: ValidateOptions): Promise<Validatio
   validateEmptyDirs(report, validationConfig, options);
   validateI18nStructure(report, validationConfig, options);
   validateMissingTranslations(report, validationConfig, options);
+  validateDocTypeConventions(report, validationConfig, options);
   validateLinks(report, validationConfig, options);
   validateNavConfig(report, validationConfig, options);
   validateOrphanDocs(report, validationConfig, options);

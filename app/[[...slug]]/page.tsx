@@ -8,6 +8,7 @@ import { getUiCopy } from "../../lib/i18n/ui-copy";
 import { renderMdx } from "../../lib/mdx";
 import { loadRegistry } from "../../lib/typematter/build-registry";
 import type { ContentPage } from "../../lib/typematter/plugin";
+import { getPageVersionInfo } from "../../lib/typematter/versioning";
 import siteConfig from "../../site.config";
 
 export const dynamicParams = false;
@@ -96,10 +97,18 @@ export default async function DocPage({
     title: doc.frontmatter.title,
     order: doc.frontmatter.order,
     section: doc.frontmatter.section,
+    type: doc.frontmatter.type,
     status: doc.frontmatter.status,
     version: doc.frontmatter.version,
     tags: doc.frontmatter.tags,
     description: doc.frontmatter.description,
+    aliases: doc.frontmatter.aliases,
+    versionGroup: doc.frontmatter.versionGroup,
+    changelog: doc.frontmatter.changelog,
+    supersedes: doc.frontmatter.supersedes,
+    diffWith: doc.frontmatter.diffWith,
+    deprecatedIn: doc.frontmatter.deprecatedIn,
+    removedIn: doc.frontmatter.removedIn,
     hidden: doc.frontmatter.hidden,
     pager: doc.frontmatter.pager,
     toc: doc.headings,
@@ -185,7 +194,11 @@ export default async function DocPage({
     currentRoute: doc.route,
     currentSection: doc.frontmatter.section,
     title: doc.frontmatter.title,
+    currentType: doc.frontmatter.type,
+    currentVersion: doc.frontmatter.version,
+    currentVersionGroup: doc.frontmatter.versionGroup ?? doc.contentPath,
   };
+  const versionInfo = registryPage ? getPageVersionInfo(registry, registryPage) : null;
 
   return (
     <DocsShell
@@ -200,6 +213,7 @@ export default async function DocPage({
       currentRoute={doc.route}
       languages={languages}
       pager={resolvedPager}
+      versionInfo={versionInfo ?? undefined}
       askAi={askAi}
       askContext={askContext}
       uiCopy={uiCopy}

@@ -1,8 +1,10 @@
 import type { ReactNode } from "react";
+import { resolveMdxUiCopy, type MdxUiCopy } from "./MdxUiContext";
 
 type DetailsProps = {
   summary?: string;
   open?: boolean | string;
+  uiCopy?: MdxUiCopy;
   children: ReactNode;
 };
 
@@ -16,7 +18,8 @@ function toBoolean(value: DetailsProps["open"]) {
   return false;
 }
 
-export function Details({ summary, open, children }: DetailsProps) {
+export function Details({ summary, open, uiCopy, children }: DetailsProps) {
+  const copy = uiCopy ?? resolveMdxUiCopy();
   const isOpen = toBoolean(open);
 
   return (
@@ -27,7 +30,7 @@ export function Details({ summary, open, children }: DetailsProps) {
             <path d="M6 4l4 4-4 4" />
           </svg>
         </span>
-        <span>{summary ?? "Details"}</span>
+        <span>{summary ?? copy.detailsSummary}</span>
       </summary>
       <div className="details-body">{children}</div>
     </details>

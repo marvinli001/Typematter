@@ -2,8 +2,13 @@
 title: Typematter API
 order: 0
 section: API
+type: api
 status: experimental
 version: 0.3.0-rc
+description: Typematter 的 API 参考页，涵盖 CLI、站点配置、插件钩子与构建契约。
+aliases:
+  - 接口参考
+  - api 参考
 ---
 
 Typematter 的 API 设计对齐主流文档系统的共性能力：统一 CLI、声明式配置、插件/钩子机制、内置 MDX 组件库，以及编译期生成导航与搜索索引。目标是保持内容与渲染解耦，同时保证构建可缓存、可回滚、可扩展。
@@ -107,7 +112,7 @@ export type TypematterPlugin = {
 
 内置组件库用于保证一致的阅读语义（Callout、Columns、Diff、Tabs 等）。新增组件需同步更新组件注册表与构建期使用检测，避免出现一次性变体。
 
-## Content Registry
+## 内容注册表
 
 构建期生成 `contentRegistry.json`，包含路由、标题、顺序、章节、状态/版本/标签、TOC 与组件使用信息，并支持缓存：
 

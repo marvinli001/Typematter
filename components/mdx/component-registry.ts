@@ -1,3 +1,6 @@
+import { createElement, type ComponentType } from "react";
+import { resolveMdxUiCopy } from "./MdxUiContext";
+
 const COMPONENT_LOADERS: Record<string, () => Promise<unknown>> = {
   Callout: async () => (await import("./Callout")).Callout,
   Note: async () => (await import("./Callout")).Note,
@@ -69,9 +72,28 @@ function expandDependencies(components: Set<string>) {
   }
 }
 
+function wrapWithUiCopy(component: unknown, language?: string) {
+  if (typeof component !== "function") {
+    return component;
+  }
+
+  if (!language) {
+    return component;
+  }
+
+  const uiCopy = resolveMdxUiCopy(language);
+  return function WrappedComponent(props: Record<string, unknown>) {
+    return createElement(component as ComponentType<any>, {
+      ...props,
+      uiCopy,
+    });
+  };
+}
+
 export async function resolveMdxComponents(
   usedComponents: string[] | undefined,
-  pluginComponents: Record<string, unknown> = {}
+  pluginComponents: Record<string, unknown> = {},
+  language?: string
 ) {
   const required = new Set<string>(["CodeBlock"]);
   (usedComponents ?? []).forEach((name) => required.add(name));
@@ -84,7 +106,7 @@ export async function resolveMdxComponents(
       if (!loader) {
         return;
       }
-      resolved[name] = await loader();
+      resolved[name] = wrapWithUiCopy(await loader(), language);
     })
   );
 

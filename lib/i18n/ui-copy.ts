@@ -26,6 +26,17 @@ export type UiCopy = {
     previous: string;
     next: string;
     docPagination: string;
+    versioning: {
+      title: string;
+      currentVersion: string;
+      otherVersions: string;
+      changelog: string;
+      supersedes: string;
+      supersededBy: string;
+      compareWith: string;
+      deprecatedIn: string;
+      removedIn: string;
+    };
   };
   copyPage: {
     defaultLabel: string;
@@ -102,6 +113,17 @@ const EN_COPY: UiCopy = {
     previous: "Previous",
     next: "Next",
     docPagination: "Doc pagination",
+    versioning: {
+      title: "Version links",
+      currentVersion: "Current",
+      otherVersions: "Versions",
+      changelog: "Changelog",
+      supersedes: "Replaces",
+      supersededBy: "Replaced by",
+      compareWith: "Compare",
+      deprecatedIn: "Deprecated in",
+      removedIn: "Removed in",
+    },
   },
   copyPage: {
     defaultLabel: "Copy page",
@@ -179,6 +201,17 @@ const CN_COPY: UiCopy = {
     previous: "上一页",
     next: "下一页",
     docPagination: "文档翻页",
+    versioning: {
+      title: "版本关联",
+      currentVersion: "当前版本",
+      otherVersions: "可切换版本",
+      changelog: "更新日志",
+      supersedes: "替代",
+      supersededBy: "被替代为",
+      compareWith: "对比页面",
+      deprecatedIn: "弃用版本",
+      removedIn: "移除版本",
+    },
   },
   copyPage: {
     defaultLabel: "复制页面",

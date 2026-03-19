@@ -12,10 +12,18 @@ export type RegistryPage = {
   title: string;
   order: number;
   section: string;
+  type?: string;
   status?: string;
   version?: string | number;
   tags?: string[];
   description?: string;
+  aliases?: string[];
+  versionGroup?: string;
+  changelog?: string;
+  supersedes?: string;
+  diffWith?: string;
+  deprecatedIn?: string | number;
+  removedIn?: string | number;
   hidden?: boolean;
   pager?: boolean;
   toc: RegistryTocItem[];

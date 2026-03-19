@@ -1,8 +1,10 @@
 import type { ReactElement, ReactNode } from "react";
+import { resolveMdxUiCopy, type MdxUiCopy } from "./MdxUiContext";
 import CopyButton from "./CopyButton";
 
 type CodeBlockProps = {
   children: ReactNode;
+  uiCopy?: MdxUiCopy;
 };
 
 function getCodeChild(children: ReactNode) {
@@ -34,7 +36,8 @@ function extractText(node: ReactNode): string {
   return "";
 }
 
-export function CodeBlock({ children }: CodeBlockProps) {
+export function CodeBlock({ children, uiCopy }: CodeBlockProps) {
+  const copy = uiCopy ?? resolveMdxUiCopy();
   const codeElement = getCodeChild(children);
   const className = codeElement?.props?.className ?? "";
   const language =
@@ -71,10 +74,12 @@ export function CodeBlock({ children }: CodeBlockProps) {
       <div className="code-header">
         <span className="code-title">
           {isTerminal ? <span className="terminal-mark">{"\u003e_"}</span> : null}
-          <span>{isTerminal ? "Terminal" : language || "code"}</span>
+          <span>
+            {isTerminal ? copy.codeBlock.terminal : language || copy.codeBlock.code}
+          </span>
         </span>
         <div className="code-actions">
-          <CopyButton text={code} />
+          <CopyButton text={code} uiCopy={copy} />
         </div>
       </div>
       <pre className="code-content">{children}</pre>

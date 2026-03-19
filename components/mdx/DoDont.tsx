@@ -1,10 +1,12 @@
 import type { ReactElement, ReactNode } from "react";
 import { Children, isValidElement } from "react";
+import { resolveMdxUiCopy, type MdxUiCopy } from "./MdxUiContext";
 
 type DoDontProps = {
   title?: string;
   doTitle?: string;
   dontTitle?: string;
+  uiCopy?: MdxUiCopy;
   children: ReactNode;
 };
 
@@ -67,19 +69,23 @@ function renderColumn(
 
 export function DoDont({
   title,
-  doTitle = "Do",
-  dontTitle = "Don't",
+  doTitle,
+  dontTitle,
+  uiCopy,
   children,
 }: DoDontProps) {
+  const copy = uiCopy ?? resolveMdxUiCopy();
   const goodItems = parseItems(children, (child) => child.type === DoItem);
   const badItems = parseItems(children, (child) => child.type === DontItem);
+  const resolvedDoTitle = doTitle ?? copy.doDont.do;
+  const resolvedDontTitle = dontTitle ?? copy.doDont.dont;
 
   return (
     <div className="do-dont">
       {title ? <div className="do-dont-title">{title}</div> : null}
       <div className="do-dont-grid">
-        {renderColumn("do", doTitle, goodItems)}
-        {renderColumn("dont", dontTitle, badItems)}
+        {renderColumn("do", resolvedDoTitle, goodItems)}
+        {renderColumn("dont", resolvedDontTitle, badItems)}
       </div>
     </div>
   );

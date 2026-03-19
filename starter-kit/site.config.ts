@@ -1,5 +1,6 @@
 import { defineSiteConfig } from "./lib/typematter/config";
 import type { SiteConfig } from "./lib/typematter/config";
+import { createDefaultValidationConfig } from "./lib/typematter/default-validation";
 
 const siteConfig: SiteConfig = defineSiteConfig({
   title: "My Docs",
@@ -27,6 +28,7 @@ const siteConfig: SiteConfig = defineSiteConfig({
       ],
     },
   },
+  validation: createDefaultValidationConfig(),
 });
 
 export default siteConfig;

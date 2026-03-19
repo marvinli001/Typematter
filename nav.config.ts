@@ -8,16 +8,29 @@ const navConfig = defineNavConfig<string>()({
   appendUnlisted: true,
   groups: [
     {
-      title: "Get started",
+      title: {
+        en: "Get started",
+        cn: "开始使用",
+      },
       items: [
-        { type: "doc", slug: "/", title: "Overview" },
+        {
+          type: "doc",
+          slug: "/",
+          title: {
+            en: "Overview",
+            cn: "概览",
+          },
+        },
         { type: "doc", slug: "get-started/quickstart" },
         { type: "doc", slug: "get-started/project-structure" },
         { type: "doc", slug: "get-started/deployment" },
       ],
     },
     {
-      title: "Core concepts",
+      title: {
+        en: "Core concepts",
+        cn: "核心概念",
+      },
       items: [
         { type: "doc", slug: "core-concepts/architecture" },
         { type: "doc", slug: "core-concepts/navigation" },
@@ -34,15 +47,24 @@ const navConfig = defineNavConfig<string>()({
       ],
     },
     {
-      title: "Changelog",
+      title: {
+        en: "Changelog",
+        cn: "更新日志",
+      },
       items: [{ type: "doc", slug: "changelog" }],
     },
     {
-      title: "Resources",
+      title: {
+        en: "Resources",
+        cn: "资源",
+      },
       items: [
         {
           type: "external",
-          title: "Git repository",
+          title: {
+            en: "Git repository",
+            cn: "Git 仓库",
+          },
           href: repoUrl,
           hidden: !hasPublicRepoUrl,
         },

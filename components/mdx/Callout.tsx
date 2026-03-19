@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { resolveMdxUiCopy, type MdxUiCopy } from "./MdxUiContext";
 
 export type CalloutVariant =
   | "note"
@@ -10,15 +11,8 @@ export type CalloutVariant =
 type CalloutProps = {
   type?: CalloutVariant;
   title?: string;
+  uiCopy?: MdxUiCopy;
   children: ReactNode;
-};
-
-const DEFAULT_TITLES: Record<CalloutVariant, string> = {
-  note: "Note",
-  tip: "Tip",
-  warning: "Warning",
-  deprecated: "Deprecated",
-  info: "Info",
 };
 
 const CALLOUT_ICONS: Record<CalloutVariant, ReactNode> = {
@@ -61,41 +55,50 @@ export function Callout({ type = "note", title, children }: CalloutProps) {
   );
 }
 
-export function Note({ title, children }: Omit<CalloutProps, "type">) {
+export function Note({ title, uiCopy, children }: Omit<CalloutProps, "type">) {
+  const copy = uiCopy ?? resolveMdxUiCopy();
   return (
-    <Callout type="note" title={title ?? DEFAULT_TITLES.note}>
+    <Callout type="note" title={title ?? copy.calloutTitles.note} uiCopy={copy}>
       {children}
     </Callout>
   );
 }
 
-export function Tip({ title, children }: Omit<CalloutProps, "type">) {
+export function Tip({ title, uiCopy, children }: Omit<CalloutProps, "type">) {
+  const copy = uiCopy ?? resolveMdxUiCopy();
   return (
-    <Callout type="tip" title={title ?? DEFAULT_TITLES.tip}>
+    <Callout type="tip" title={title ?? copy.calloutTitles.tip} uiCopy={copy}>
       {children}
     </Callout>
   );
 }
 
-export function Info({ title, children }: Omit<CalloutProps, "type">) {
+export function Info({ title, uiCopy, children }: Omit<CalloutProps, "type">) {
+  const copy = uiCopy ?? resolveMdxUiCopy();
   return (
-    <Callout type="info" title={title ?? DEFAULT_TITLES.info}>
+    <Callout type="info" title={title ?? copy.calloutTitles.info} uiCopy={copy}>
       {children}
     </Callout>
   );
 }
 
-export function Warning({ title, children }: Omit<CalloutProps, "type">) {
+export function Warning({ title, uiCopy, children }: Omit<CalloutProps, "type">) {
+  const copy = uiCopy ?? resolveMdxUiCopy();
   return (
-    <Callout type="warning" title={title ?? DEFAULT_TITLES.warning}>
+    <Callout type="warning" title={title ?? copy.calloutTitles.warning} uiCopy={copy}>
       {children}
     </Callout>
   );
 }
 
-export function Deprecated({ title, children }: Omit<CalloutProps, "type">) {
+export function Deprecated({ title, uiCopy, children }: Omit<CalloutProps, "type">) {
+  const copy = uiCopy ?? resolveMdxUiCopy();
   return (
-    <Callout type="deprecated" title={title ?? DEFAULT_TITLES.deprecated}>
+    <Callout
+      type="deprecated"
+      title={title ?? copy.calloutTitles.deprecated}
+      uiCopy={copy}
+    >
       {children}
     </Callout>
   );

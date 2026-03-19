@@ -1,6 +1,11 @@
 import type { ReactNode } from "react";
+import { resolveMdxUiCopy, type MdxUiCopy } from "./MdxUiContext";
 
-type EndpointProps = {
+type ApiDocsUiProps = {
+  uiCopy?: MdxUiCopy;
+};
+
+type EndpointProps = ApiDocsUiProps & {
   method: string;
   path: string;
   title?: string;
@@ -12,12 +17,12 @@ type EndpointProps = {
   children?: ReactNode;
 };
 
-type ParamTableProps = {
+type ParamTableProps = ApiDocsUiProps & {
   title?: string;
   children: ReactNode;
 };
 
-type ParamFieldProps = {
+type ParamFieldProps = ApiDocsUiProps & {
   name: string;
   type: string;
   required?: boolean | string;
@@ -26,14 +31,14 @@ type ParamFieldProps = {
   children?: ReactNode;
 };
 
-type ResponseSchemaProps = {
+type ResponseSchemaProps = ApiDocsUiProps & {
   title?: string;
   code?: string | number;
   mediaType?: string;
   children: ReactNode;
 };
 
-type SchemaFieldProps = {
+type SchemaFieldProps = ApiDocsUiProps & {
   name: string;
   type: string;
   required?: boolean | string;
@@ -70,14 +75,16 @@ export function Endpoint({
   since,
   deprecated,
   removedIn,
+  uiCopy,
   children,
 }: EndpointProps) {
+  const copy = uiCopy ?? resolveMdxUiCopy();
   const normalizedMethod = method.trim().toUpperCase();
   const meta = [
-    auth ? `Auth: ${auth}` : null,
-    renderVersionTag("Since", since),
-    renderVersionTag("Deprecated", deprecated),
-    renderVersionTag("Removed in", removedIn),
+    auth ? `${copy.apiDocs.auth}: ${auth}` : null,
+    renderVersionTag(copy.apiDocs.since, since),
+    renderVersionTag(copy.apiDocs.deprecated, deprecated),
+    renderVersionTag(copy.apiDocs.removedIn, removedIn),
   ].filter(Boolean) as string[];
 
   return (
@@ -104,16 +111,17 @@ export function Endpoint({
   );
 }
 
-export function ParamTable({ title, children }: ParamTableProps) {
+export function ParamTable({ title, uiCopy, children }: ParamTableProps) {
+  const copy = uiCopy ?? resolveMdxUiCopy();
   return (
     <section className="param-table">
       {title ? <div className="param-table-title">{title}</div> : null}
       <div className="param-table-head" role="row">
-        <span>Name</span>
-        <span>Type</span>
-        <span>Required</span>
-        <span>Default</span>
-        <span>Description</span>
+        <span>{copy.apiDocs.name}</span>
+        <span>{copy.apiDocs.type}</span>
+        <span>{copy.apiDocs.required}</span>
+        <span>{copy.apiDocs.default}</span>
+        <span>{copy.apiDocs.description}</span>
       </div>
       <div className="param-table-body">{children}</div>
     </section>
@@ -126,9 +134,11 @@ export function ParamField({
   required,
   defaultValue,
   description,
+  uiCopy,
   children,
 }: ParamFieldProps) {
-  const requiredText = toBoolean(required) ? "Yes" : "No";
+  const copy = uiCopy ?? resolveMdxUiCopy();
+  const requiredText = toBoolean(required) ? copy.apiDocs.yes : copy.apiDocs.no;
   const body = children ?? description ?? null;
 
   return (
@@ -152,14 +162,20 @@ export function ResponseSchema({
   title,
   code,
   mediaType,
+  uiCopy,
   children,
 }: ResponseSchemaProps) {
+  const copy = uiCopy ?? resolveMdxUiCopy();
   return (
     <section className="response-schema">
       <div className="response-schema-head">
         {title ? <div className="response-schema-title">{title}</div> : null}
         <div className="response-schema-meta">
-          {code !== undefined ? <span className="endpoint-chip">HTTP {code}</span> : null}
+          {code !== undefined ? (
+            <span className="endpoint-chip">
+              {copy.apiDocs.http} {code}
+            </span>
+          ) : null}
           {mediaType ? <span className="endpoint-chip">{mediaType}</span> : null}
         </div>
       </div>
@@ -173,8 +189,10 @@ export function SchemaField({
   type,
   required,
   description,
+  uiCopy,
   children,
 }: SchemaFieldProps) {
+  const copy = uiCopy ?? resolveMdxUiCopy();
   const hasChildren = Boolean(children);
 
   return (
@@ -183,7 +201,9 @@ export function SchemaField({
         <div className="schema-main">
           <code className="schema-name">{name}</code>
           <code className="schema-type">{type}</code>
-          {toBoolean(required) ? <span className="schema-badge">required</span> : null}
+          {toBoolean(required) ? (
+            <span className="schema-badge">{copy.apiDocs.requiredBadge}</span>
+          ) : null}
         </div>
         {description ? <div className="schema-description">{description}</div> : null}
       </div>

@@ -15,7 +15,8 @@ export type ValidationRuleId =
   | "i18nStructure"
   | "missingTranslations"
   | "headingDepth"
-  | "frontmatterSchema";
+  | "frontmatterSchema"
+  | "docTypeConventions";
 
 export type FrontmatterTypeRule =
   | "string"
@@ -46,17 +47,33 @@ export type ValidationConfig = {
   frontmatterSchemas?: FrontmatterSchemaRule[];
   translation?: {
     ignorePaths?: string[];
+    requiredFields?: string[];
+    requiredLanguages?: string[];
+    requireLocalizedNavTitles?: boolean;
+    sharedNavTitles?: string[];
   };
   heading?: {
     maxDepth?: number;
     allowSkip?: boolean;
   };
+  docTypes?: Record<
+    string,
+    {
+      include?: string[];
+      exclude?: string[];
+      requiredFields?: string[];
+      requiredComponentsAnyOf?: string[];
+      recommendedComponentsAnyOf?: string[];
+    }
+  >;
 };
 
 export type LanguageOption = {
   code: string;
   label: string;
 };
+
+export type LocalizedText = string | Partial<Record<string, string>>;
 
 export type I18nConfig = {
   defaultLanguage: string;
@@ -102,18 +119,18 @@ export type NavItemConfig<Route extends string = string> =
   | {
       type: "doc";
       slug: NavDocSlug<Route>;
-      title?: string;
+      title?: LocalizedText;
       hidden?: boolean;
     }
   | {
       type: "external";
-      title: string;
+      title: LocalizedText;
       href: string;
       hidden?: boolean;
     };
 
 export type NavGroupConfig<Route extends string = string> = {
-  title: string;
+  title: LocalizedText;
   items: NavItemConfig<Route>[];
 };
 

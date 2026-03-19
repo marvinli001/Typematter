@@ -10,6 +10,11 @@ import type {
   SearchManifest,
   SearchPosting,
 } from "../lib/typematter/search";
+import {
+  compressSearchSnippet,
+  expandQueryTokens,
+  normalizeForSearch,
+} from "../lib/typematter/search-utils";
 import type { UiCopy } from "../lib/i18n/ui-copy";
 
 const AskPanel = dynamic(() => import("./search/AskPanel"), {
@@ -30,6 +35,9 @@ type AskContext = {
   currentRoute: string;
   currentSection: string;
   title: string;
+  currentType?: string;
+  currentVersion?: string | number;
+  currentVersionGroup?: string;
 };
 
 type SearchModalProps = {
@@ -60,37 +68,6 @@ function isModifiedKey(event: KeyboardEvent) {
   return event.metaKey || event.ctrlKey || event.altKey || event.shiftKey;
 }
 
-function normalizeForSearch(value: string) {
-  return value
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N}\s]+/gu, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function tokenizeForSearch(value: string) {
-  const normalized = normalizeForSearch(value);
-  if (!normalized) {
-    return [];
-  }
-
-  const tokens: string[] = [];
-  const latin = normalized.match(/[a-z0-9]+/g) ?? [];
-  tokens.push(...latin);
-
-  const cjkSequences =
-    normalized.match(/[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]+/gu) ?? [];
-  cjkSequences.forEach((seq) => {
-    const chars = Array.from(seq);
-    chars.forEach((char) => tokens.push(char));
-    for (let i = 0; i < chars.length - 1; i += 1) {
-      tokens.push(`${chars[i]}${chars[i + 1]}`);
-    }
-  });
-
-  return Array.from(new Set(tokens.filter((token) => token.length > 0)));
-}
-
 function hashToken(token: string) {
   let hash = 2166136261;
   for (let i = 0; i < token.length; i += 1) {
@@ -103,43 +80,6 @@ function hashToken(token: string) {
 
 function bucketForToken(token: string, bucketCount: number) {
   return hashToken(token) % bucketCount;
-}
-
-function buildSnippet(content: string | undefined, query: string) {
-  if (!content) {
-    return "";
-  }
-  const clean = content.replace(/\s+/g, " ").trim();
-  if (!clean) {
-    return "";
-  }
-  const q = query.trim().toLowerCase();
-  if (!q) {
-    return clean.slice(0, 140) + (clean.length > 140 ? "..." : "");
-  }
-  const tokens = q.split(/\s+/).filter(Boolean);
-  const lower = clean.toLowerCase();
-  let index = -1;
-  for (const token of tokens) {
-    const found = lower.indexOf(token);
-    if (found !== -1) {
-      index = found;
-      break;
-    }
-  }
-  if (index === -1) {
-    return clean.slice(0, 140) + (clean.length > 140 ? "..." : "");
-  }
-  const start = Math.max(0, index - 50);
-  const end = Math.min(clean.length, index + 90);
-  let snippet = clean.slice(start, end).trim();
-  if (start > 0) {
-    snippet = `...${snippet}`;
-  }
-  if (end < clean.length) {
-    snippet = `${snippet}...`;
-  }
-  return snippet;
 }
 
 function escapeRegExp(value: string) {
@@ -167,7 +107,7 @@ function highlightText(text: string, query: string) {
   );
 }
 
-function toPostingValue(posting: SearchPosting, key: "t" | "h" | "s" | "g" | "b") {
+function toPostingValue(posting: SearchPosting, key: "t" | "h" | "s" | "g" | "a" | "b") {
   return posting[key] ?? 0;
 }
 
@@ -222,9 +162,11 @@ function rankResults(
       const headingWeight = toPostingValue(posting, "h") * 70;
       const tagsWeight = toPostingValue(posting, "g") * 48;
       const sectionWeight = toPostingValue(posting, "s") * 36;
+      const aliasWeight = toPostingValue(posting, "a") * 54;
       const bodyWeight = Math.min(12, toPostingValue(posting, "b")) * 8;
 
-      let score = titleWeight + headingWeight + tagsWeight + sectionWeight + bodyWeight;
+      let score =
+        titleWeight + headingWeight + tagsWeight + sectionWeight + aliasWeight + bodyWeight;
       if (normalizedQuery && doc.titleNormalized === normalizedQuery) {
         score += 1200;
       } else if (normalizedQuery && doc.titleNormalized.startsWith(normalizedQuery)) {
@@ -240,6 +182,10 @@ function rankResults(
 
       if (normalizedQuery && doc.headingNormalized.includes(normalizedQuery)) {
         score += 260;
+      }
+
+      if (normalizedQuery && doc.aliasesNormalized.includes(normalizedQuery)) {
+        score += 320;
       }
 
       if (normalizedQuery && doc.searchNormalized.includes(normalizedQuery)) {
@@ -569,7 +515,7 @@ export default function SearchModal({
       return;
     }
 
-    const tokens = tokenizeForSearch(trimmed);
+    const tokens = Array.from(new Set(expandQueryTokens(trimmed)));
     if (tokens.length === 0) {
       setResults([]);
       setSearchLoading(false);
@@ -644,6 +590,8 @@ export default function SearchModal({
               (accumulator.posting.s ?? 0) + (posting.s ?? 0);
             accumulator.posting.g =
               (accumulator.posting.g ?? 0) + (posting.g ?? 0);
+            accumulator.posting.a =
+              (accumulator.posting.a ?? 0) + (posting.a ?? 0);
             accumulator.posting.b =
               (accumulator.posting.b ?? 0) + (posting.b ?? 0);
             accumulators.set(posting.id, accumulator);
@@ -778,7 +726,10 @@ export default function SearchModal({
                       </span>
                       {item.snippet ? (
                         <span className="search-item-snippet">
-                          {highlightText(buildSnippet(item.snippet, query), query)}
+                          {highlightText(
+                            compressSearchSnippet(item.snippet, query, 140),
+                            query
+                          )}
                         </span>
                       ) : null}
                     </span>

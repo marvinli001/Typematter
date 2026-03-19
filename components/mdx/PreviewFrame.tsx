@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import { resolveMdxUiCopy, type MdxUiCopy } from "./MdxUiContext";
 
 type PreviewFrameType = "iframe" | "image" | "video";
 
@@ -11,6 +12,7 @@ type PreviewFrameProps = {
   height?: number | string;
   allow?: string;
   poster?: string;
+  uiCopy?: MdxUiCopy;
 };
 
 function detectType(src: string, type?: PreviewFrameType) {
@@ -51,7 +53,9 @@ export function PreviewFrame({
   height,
   allow,
   poster,
+  uiCopy,
 }: PreviewFrameProps) {
+  const copy = uiCopy ?? resolveMdxUiCopy();
   const resolvedType = detectType(src, type);
   const style = {
     "--preview-ratio": resolveRatioPadding(ratio),
@@ -69,7 +73,7 @@ export function PreviewFrame({
           target="_blank"
           rel="noreferrer"
         >
-          Open source
+          {copy.previewFrame.openSource}
         </a>
       </div>
       <div className={`preview-frame-media ${resolvedType}`}>

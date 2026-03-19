@@ -13,6 +13,7 @@ import remarkCodeTabs from "../remark-code-tabs";
 import siteConfig from "../../site.config";
 import { getAllDocEntries } from "../docs";
 import { getI18nConfig } from "../i18n";
+import { collectComponents } from "./mdx-components";
 import type { AskIndexItem } from "./ask";
 import {
   createBuildContext,
@@ -28,6 +29,11 @@ import type {
   SearchManifest,
   SearchPosting,
 } from "./search";
+import {
+  buildAliasList,
+  normalizeForSearch,
+  tokenizeForSearch,
+} from "./search-utils";
 
 const CACHE_DIR = path.join(process.cwd(), ".typematter");
 const REGISTRY_FILE = "registry.json";
@@ -42,54 +48,6 @@ const PUBLIC_ASK_INDEX_FILE = "ask-index.json";
 const PUBLIC_SEARCH_DIR = path.join(PUBLIC_TYPEMATTER_DIR, "search");
 const SEARCH_MANIFEST_FILE = "manifest.json";
 const SEARCH_BUCKETS = 32;
-
-const COMPONENT_ALIASES: Record<string, string> = {
-  callout: "Callout",
-  note: "Note",
-  tip: "Tip",
-  info: "Info",
-  warning: "Warning",
-  deprecated: "Deprecated",
-  diffblock: "DiffBlock",
-  diffcolumn: "DiffColumn",
-  columns: "Columns",
-  column: "Column",
-  codetabs: "CodeTabs",
-  codetab: "CodeTab",
-  "code-group": "CodeTabs",
-  tab: "CodeTab",
-  featurematrix: "FeatureMatrix",
-  "feature-matrix": "FeatureMatrix",
-  steps: "Steps",
-  step: "Step",
-  details: "Details",
-  accordion: "Details",
-  filetree: "FileTree",
-  "file-tree": "FileTree",
-  filetreeitem: "FileTreeItem",
-  cards: "Cards",
-  card: "Card",
-  "card-grid": "Cards",
-  "card-group": "Cards",
-  linkbutton: "LinkButton",
-  badge: "Badge",
-  annotation: "Annotation",
-  endpoint: "Endpoint",
-  paramtable: "ParamTable",
-  paramfield: "ParamField",
-  responseschema: "ResponseSchema",
-  schemafield: "SchemaField",
-  dodont: "DoDont",
-  doitem: "DoItem",
-  dontitem: "DontItem",
-  versiongate: "VersionGate",
-  commandgroup: "CommandGroup",
-  command: "Command",
-  previewframe: "PreviewFrame",
-  timeline: "Timeline",
-  releaseitem: "ReleaseItem",
-  pre: "CodeBlock",
-};
 
 type StandardSearchArtifacts = {
   manifest: SearchManifest;
@@ -137,68 +95,6 @@ function getPackageVersion() {
   } catch {
     return "0.0.0";
   }
-}
-
-function pascalCase(value: string) {
-  return value
-    .split(/[-_\s]+/)
-    .filter(Boolean)
-    .map((token) => token.charAt(0).toUpperCase() + token.slice(1))
-    .join("");
-}
-
-function normalizeComponentName(name: string) {
-  const raw = String(name).trim();
-  if (!raw) {
-    return "";
-  }
-
-  const normalizedKey = raw.toLowerCase();
-  if (COMPONENT_ALIASES[normalizedKey]) {
-    return COMPONENT_ALIASES[normalizedKey];
-  }
-
-  if (/^[A-Z]/.test(raw)) {
-    return raw;
-  }
-
-  if (/^[a-z][a-z0-9-]*$/.test(raw)) {
-    return "";
-  }
-
-  return pascalCase(raw);
-}
-
-function collectComponents(source: string) {
-  const names = new Set<string>();
-  const processor = remark()
-    .use(remarkMdx)
-    .use(remarkGfm)
-    .use(remarkDirective)
-    .use(remarkCodeTabs)
-    .use(remarkDocsComponents);
-  const parsed = processor.parse(source);
-  const tree = processor.runSync(parsed);
-
-  visit(tree, ["mdxJsxFlowElement", "mdxJsxTextElement"], (node: any) => {
-    if (node?.name) {
-      const resolved = normalizeComponentName(String(node.name));
-      if (resolved) {
-        names.add(resolved);
-      }
-    }
-  });
-
-  visit(tree, ["containerDirective", "textDirective", "leafDirective"], (node: any) => {
-    if (node?.name) {
-      const resolved = normalizeComponentName(String(node.name));
-      if (resolved) {
-        names.add(resolved);
-      }
-    }
-  });
-
-  return Array.from(names.values()).sort((a, b) => a.localeCompare(b));
 }
 
 function normalizeSiteUrl(value: string | undefined) {
@@ -363,38 +259,6 @@ function extractAskChunks(source: string) {
   return chunks;
 }
 
-function normalizeForSearch(value: string) {
-  return value
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N}\s]+/gu, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function tokenizeForSearch(value: string) {
-  const normalized = normalizeForSearch(value);
-  if (!normalized) {
-    return [];
-  }
-
-  const tokens: string[] = [];
-  const latin = normalized.match(/[a-z0-9]+/g) ?? [];
-  tokens.push(...latin);
-
-  const cjkSequences =
-    normalized.match(/[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]+/gu) ??
-    [];
-  cjkSequences.forEach((seq) => {
-    const chars = Array.from(seq);
-    chars.forEach((char) => tokens.push(char));
-    for (let i = 0; i < chars.length - 1; i += 1) {
-      tokens.push(`${chars[i]}${chars[i + 1]}`);
-    }
-  });
-
-  return tokens.filter((token) => token.length > 0);
-}
-
 function countTokens(value: string) {
   const counts = new Map<string, number>();
   tokenizeForSearch(value).forEach((token) => {
@@ -427,10 +291,18 @@ function createContentPagesFromDocs() {
     title: doc.frontmatter.title,
     order: doc.frontmatter.order,
     section: doc.frontmatter.section,
+    type: doc.frontmatter.type,
     status: doc.frontmatter.status,
     version: doc.frontmatter.version,
     tags: doc.frontmatter.tags,
     description: doc.frontmatter.description,
+    aliases: doc.frontmatter.aliases,
+    versionGroup: doc.frontmatter.versionGroup,
+    changelog: doc.frontmatter.changelog,
+    supersedes: doc.frontmatter.supersedes,
+    diffWith: doc.frontmatter.diffWith,
+    deprecatedIn: doc.frontmatter.deprecatedIn,
+    removedIn: doc.frontmatter.removedIn,
     hidden: doc.frontmatter.hidden,
     pager: doc.frontmatter.pager,
     toc: doc.headings,
@@ -466,7 +338,7 @@ function buildStandardSearch(pages: ContentPage[], contentHash: string): Standar
     const addPosting = (
       token: string,
       docId: number,
-      key: "t" | "h" | "s" | "g" | "b",
+      key: "t" | "h" | "s" | "g" | "a" | "b",
       count: number
     ) => {
       const bucket = bucketForToken(token, SEARCH_BUCKETS);
@@ -486,6 +358,16 @@ function buildStandardSearch(pages: ContentPage[], contentHash: string): Standar
       const snippet = page.plainText.slice(0, 280);
       const headingText = (page.toc ?? []).map((item) => item.title).join(" ");
       const tagsText = (page.tags ?? []).join(" ");
+      const aliasList = buildAliasList({
+        title: page.title,
+        section: page.section,
+        type: page.type,
+        contentPath: page.contentPath,
+        contentRoute: page.contentRoute,
+        components: page.components,
+        aliases: page.aliases,
+      });
+      const aliasesText = aliasList.join(" ");
       const searchText = [page.title, headingText, page.section, tagsText, snippet]
         .filter(Boolean)
         .join(" ");
@@ -495,12 +377,16 @@ function buildStandardSearch(pages: ContentPage[], contentHash: string): Standar
         title: page.title,
         href: page.route,
         section: page.section,
+        type: page.type,
+        version: page.version,
         tags: page.tags,
+        aliases: aliasList,
         headings: (page.toc ?? []).map((item) => item.title),
         snippet,
         language: page.language,
         titleNormalized: normalizeForSearch(page.title),
         headingNormalized: normalizeForSearch(headingText),
+        aliasesNormalized: normalizeForSearch(aliasesText),
         searchNormalized: normalizeForSearch(searchText),
       });
 
@@ -515,6 +401,9 @@ function buildStandardSearch(pages: ContentPage[], contentHash: string): Standar
       });
       countTokens(tagsText).forEach((count, token) => {
         addPosting(token, index, "g", count);
+      });
+      countTokens(aliasesText).forEach((count, token) => {
+        addPosting(token, index, "a", count);
       });
       countTokens(page.plainText.slice(0, 5000)).forEach((count, token) => {
         addPosting(token, index, "b", count);
@@ -566,10 +455,18 @@ function buildRegistryCore(pages: ContentPage[]): BuildRegistryResult {
     title: page.title,
     order: page.order,
     section: page.section,
+    type: page.type,
     status: page.status,
     version: page.version,
     tags: page.tags,
     description: page.description,
+    aliases: page.aliases,
+    versionGroup: page.versionGroup,
+    changelog: page.changelog,
+    supersedes: page.supersedes,
+    diffWith: page.diffWith,
+    deprecatedIn: page.deprecatedIn,
+    removedIn: page.removedIn,
     hidden: page.hidden,
     pager: page.pager,
     toc: page.toc,
@@ -587,10 +484,18 @@ function buildRegistryCore(pages: ContentPage[]): BuildRegistryResult {
       title: page.title,
       order: page.order,
       section: page.section,
+      type: page.type,
       status: page.status,
       version: page.version,
       tags: page.tags,
       components: page.components,
+      aliases: page.aliases,
+      versionGroup: page.versionGroup,
+      changelog: page.changelog,
+      supersedes: page.supersedes,
+      diffWith: page.diffWith,
+      deprecatedIn: page.deprecatedIn,
+      removedIn: page.removedIn,
     }))
   );
 
@@ -615,6 +520,17 @@ function buildRegistryCore(pages: ContentPage[]): BuildRegistryResult {
     title: page.title,
     href: page.route,
     section: page.section,
+    type: page.type,
+    version: page.version,
+    aliases: buildAliasList({
+      title: page.title,
+      section: page.section,
+      type: page.type,
+      contentPath: page.contentPath,
+      contentRoute: page.contentRoute,
+      components: page.components,
+      aliases: page.aliases,
+    }),
     content: page.plainText,
     language: page.language,
   }));
@@ -629,6 +545,18 @@ function buildRegistryCore(pages: ContentPage[]): BuildRegistryResult {
       contentRoute: page.contentRoute,
       contentPath: page.contentPath,
       language: page.language,
+      type: page.type,
+      version: page.version,
+      versionGroup: page.versionGroup,
+      aliases: buildAliasList({
+        title: page.title,
+        section: page.section,
+        type: page.type,
+        contentPath: page.contentPath,
+        contentRoute: page.contentRoute,
+        components: page.components,
+        aliases: page.aliases,
+      }),
       anchor: chunk.anchor || "top",
       heading: chunk.heading,
       content: chunk.content,

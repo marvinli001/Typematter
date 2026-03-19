@@ -1,3 +1,10 @@
+import {
+  compressSearchSnippet,
+  expandQueryTokens,
+  normalizeForSearch,
+  scoreQueryCoverage,
+} from "../../../lib/typematter/search-utils";
+
 type AskScope = "page" | "section" | "site";
 
 type AskRequest = {
@@ -6,6 +13,9 @@ type AskRequest = {
   scope: AskScope;
   currentRoute: string;
   currentSection: string;
+  currentType?: string;
+  currentVersion?: string | number;
+  currentVersionGroup?: string;
   siteContext: {
     title: string;
   };
@@ -18,6 +28,10 @@ type AskIndexItem = {
   href: string;
   route: string;
   language?: string;
+  type?: string;
+  version?: string | number;
+  versionGroup?: string;
+  aliases?: string[];
   anchor: string;
   heading?: string;
   content: string;
@@ -30,6 +44,7 @@ type SourceCandidate = {
   route: string;
   section: string;
   anchor: string;
+  heading?: string;
   snippet: string;
   score: number;
 };
@@ -189,111 +204,6 @@ function resolveCorsOrigin(
   return allowed ? requestOrigin : docsOrigin;
 }
 
-function containsCjk(value: string) {
-  return /[\u3400-\u9fff]/.test(value);
-}
-
-function buildCharNgrams(text: string, size: number) {
-  const chars = Array.from(text);
-  if (chars.length <= size) {
-    return [text];
-  }
-  const grams: string[] = [];
-  for (let i = 0; i <= chars.length - size; i += 1) {
-    grams.push(chars.slice(i, i + size).join(""));
-  }
-  return grams;
-}
-
-function tokenizeQuestion(question: string) {
-  const normalized = question.trim().toLowerCase();
-  if (!normalized) {
-    return [];
-  }
-
-  const rawTokens = normalized
-    .split(/[\s,.;:!?()[\]{}，。！？；：、（）【】《》“”‘’"']+/g)
-    .map((token) => token.trim())
-    .filter(Boolean);
-  const wordTokens: string[] = [];
-
-  rawTokens.forEach((token) => {
-    if (containsCjk(token)) {
-      wordTokens.push(...buildCharNgrams(token, 2));
-      if (token.length <= 12) {
-        wordTokens.push(...buildCharNgrams(token, 3));
-      }
-      return;
-    }
-    if (token.length >= 2) {
-      wordTokens.push(token);
-    }
-  });
-
-  if (wordTokens.length > 0) {
-    return Array.from(new Set(wordTokens));
-  }
-
-  const compact = normalized.replace(/\s+/g, "");
-  const chars = Array.from(compact);
-  if (chars.length <= 2) {
-    return compact ? [compact] : [];
-  }
-
-  const grams: string[] = [];
-  for (let i = 0; i < chars.length - 1; i += 1) {
-    grams.push(chars.slice(i, i + 2).join(""));
-  }
-  return Array.from(new Set(grams));
-}
-
-function scoreByTokens(text: string, tokens: string[]) {
-  if (!text || tokens.length === 0) {
-    return 0;
-  }
-  const lower = text.toLowerCase();
-  let score = 0;
-  tokens.forEach((token) => {
-    if (lower.includes(token)) {
-      score += 1;
-    }
-  });
-  return score;
-}
-
-function compressSnippet(text: string, question: string, maxLength = 280) {
-  const clean = text.replace(/\s+/g, " ").trim();
-  if (clean.length <= maxLength) {
-    return clean;
-  }
-
-  const tokens = tokenizeQuestion(question);
-  const lower = clean.toLowerCase();
-  let index = -1;
-  for (const token of tokens) {
-    const found = lower.indexOf(token);
-    if (found !== -1) {
-      index = found;
-      break;
-    }
-  }
-
-  if (index === -1) {
-    return `${clean.slice(0, maxLength)}...`;
-  }
-
-  const start = Math.max(0, index - Math.floor(maxLength * 0.35));
-  const end = Math.min(clean.length, start + maxLength);
-  let snippet = clean.slice(start, end).trim();
-  if (start > 0) {
-    snippet = `...${snippet}`;
-  }
-  if (end < clean.length) {
-    snippet = `${snippet}...`;
-  }
-  return snippet;
-}
-
 function matchesLanguage(route: string, language: string, itemLanguage?: string) {
   const normalizedLanguage = language.toLowerCase();
   if (itemLanguage && itemLanguage.toLowerCase() !== normalizedLanguage) {
@@ -351,8 +261,8 @@ async function fetchAskIndex(env: Env) {
 }
 
 function keywordRecall(index: AskIndexItem[], payload: AskRequest) {
-  const tokens = tokenizeQuestion(payload.question);
-  const normalizedQuestion = payload.question.trim().toLowerCase();
+  const tokens = expandQueryTokens(payload.question);
+  const normalizedQuestion = normalizeForSearch(payload.question);
 
   return index
     .filter((item) => {
@@ -365,13 +275,38 @@ function keywordRecall(index: AskIndexItem[], payload: AskRequest) {
       );
     })
     .map<SourceCandidate | null>((item) => {
-      const titleScore = scoreByTokens(item.title, tokens) * 2;
-      const headingScore = scoreByTokens(item.heading ?? "", tokens) * 1.5;
-      const bodyScore = scoreByTokens(item.content, tokens);
-      const phraseBonus = item.content.toLowerCase().includes(normalizedQuestion)
-        ? 1.5
+      const titleScore = scoreQueryCoverage(item.title, tokens) * 2;
+      const headingScore = scoreQueryCoverage(item.heading ?? "", tokens) * 1.5;
+      const aliasScore = scoreQueryCoverage((item.aliases ?? []).join(" "), tokens) * 1.6;
+      const bodyScore = scoreQueryCoverage(item.content, tokens);
+      const phraseBonus =
+        item.content.toLowerCase().includes(normalizedQuestion) ||
+        (item.heading ?? "").toLowerCase().includes(normalizedQuestion)
+          ? 1.5
+          : 0;
+      const typeBoost =
+        payload.currentType && item.type === payload.currentType ? 0.6 : 0;
+      const versionGroupBoost =
+        payload.currentVersionGroup &&
+        item.versionGroup &&
+        item.versionGroup === payload.currentVersionGroup
+          ? 0.8
+          : 0;
+      const versionBoost =
+        payload.currentVersion !== undefined &&
+        item.version !== undefined &&
+        String(item.version) === String(payload.currentVersion)
+          ? 0.35
         : 0;
-      const score = titleScore + headingScore + bodyScore + phraseBonus;
+      const score =
+        titleScore +
+        headingScore +
+        aliasScore +
+        bodyScore +
+        phraseBonus +
+        typeBoost +
+        versionGroupBoost +
+        versionBoost;
       if (score <= 0) {
         return null;
       }
@@ -383,6 +318,7 @@ function keywordRecall(index: AskIndexItem[], payload: AskRequest) {
         route: item.route,
         section: item.section,
         anchor: item.anchor || "top",
+        heading: item.heading,
         snippet: item.content,
         score,
       };
@@ -554,7 +490,11 @@ function buildPrompt(payload: AskRequest, sources: SourceCandidate[]) {
       (source, index) =>
         `[S${index + 1}]\nTitle: ${source.title}\nRoute: ${source.href}#${
           source.anchor || "top"
-        }\nSnippet: ${compressSnippet(source.snippet, payload.question, 320)}`
+        }\nHeading: ${source.heading ?? "top"}\nSnippet: ${compressSearchSnippet(
+          source.snippet,
+          payload.question,
+          320
+        )}`
     )
     .join("\n\n");
 
@@ -581,6 +521,9 @@ function buildPrompt(payload: AskRequest, sources: SourceCandidate[]) {
     `Scope: ${payload.scope}`,
     `Current route: ${payload.currentRoute}`,
     `Current section: ${payload.currentSection}`,
+    `Current type: ${payload.currentType ?? "unknown"}`,
+    `Current version: ${payload.currentVersion ?? "unknown"}`,
+    `Current version group: ${payload.currentVersionGroup ?? "unknown"}`,
     "",
     "Evidence:",
     evidence,
@@ -765,6 +708,13 @@ function validateAskPayload(raw: unknown): AskRequest {
 
   const currentRoute = normalizeRoute(String(payload.currentRoute ?? "/"));
   const currentSection = String(payload.currentSection ?? "").trim();
+  const currentType = String(payload.currentType ?? "").trim() || undefined;
+  const currentVersion =
+    payload.currentVersion !== undefined && payload.currentVersion !== null
+      ? payload.currentVersion
+      : undefined;
+  const currentVersionGroup =
+    String(payload.currentVersionGroup ?? "").trim() || undefined;
   const title = String(payload.siteContext?.title ?? "").trim() || "Untitled";
 
   return {
@@ -773,6 +723,9 @@ function validateAskPayload(raw: unknown): AskRequest {
     scope,
     currentRoute,
     currentSection,
+    currentType,
+    currentVersion,
+    currentVersionGroup,
     siteContext: {
       title,
     },
@@ -783,10 +736,10 @@ async function retrieveSources(env: Env, payload: AskRequest) {
   const askIndex = await fetchAskIndex(env);
   const routeToSection = new Map<string, string>();
   askIndex.forEach((item) => {
-    const route = normalizeRoute(item.route || item.href);
-    if (!routeToSection.has(route) && item.section) {
-      routeToSection.set(route, item.section);
-    }
+      const route = normalizeRoute(item.route || item.href);
+      if (!routeToSection.has(route) && item.section) {
+        routeToSection.set(route, item.section);
+      }
   });
 
   const lexical = keywordRecall(askIndex, payload);
@@ -799,7 +752,7 @@ async function retrieveSources(env: Env, payload: AskRequest) {
 
   const fused = fuseCandidates(lexical, vector, payload.currentRoute).map((item) => ({
     ...item,
-    snippet: compressSnippet(item.snippet, payload.question, 300),
+    snippet: compressSearchSnippet(item.snippet, payload.question, 300),
   }));
   return fused;
 }
@@ -916,13 +869,14 @@ export default {
         await writeEvent(
           "sources",
           sources.map((source) => ({
-            id: source.id,
-            title: source.title,
-            href: source.href,
-            anchor: source.anchor || "top",
-            snippet: source.snippet,
-            score: source.score,
-          }))
+        id: source.id,
+        title: source.title,
+        href: source.href,
+        anchor: source.anchor || "top",
+        heading: source.heading,
+        snippet: source.snippet,
+        score: source.score,
+      }))
         );
 
         if (sources.length === 0) {

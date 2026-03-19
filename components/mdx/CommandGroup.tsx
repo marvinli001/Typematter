@@ -1,9 +1,11 @@
 import type { ReactElement, ReactNode } from "react";
 import { Children, isValidElement, useId } from "react";
+import { resolveMdxUiCopy, type MdxUiCopy } from "./MdxUiContext";
 import CopyButton from "./CopyButton";
 
 type CommandGroupProps = {
   title?: string;
+  uiCopy?: MdxUiCopy;
   children: ReactNode;
 };
 
@@ -60,7 +62,8 @@ function renderCommandBody(content: ReactNode, copyText: string) {
   );
 }
 
-export function CommandGroup({ title, children }: CommandGroupProps) {
+export function CommandGroup({ title, uiCopy, children }: CommandGroupProps) {
+  const copy = uiCopy ?? resolveMdxUiCopy();
   const baseId = normalizeId(useId());
   const tabs = Children.toArray(children)
     .filter(isValidElement)
@@ -110,7 +113,11 @@ export function CommandGroup({ title, children }: CommandGroupProps) {
           key={`${tab.id}-input`}
         />
       ))}
-      <div className="command-group-tabs" role="tablist" aria-label={title ?? "Commands"}>
+      <div
+        className="command-group-tabs"
+        role="tablist"
+        aria-label={title ?? copy.commandGroup.label}
+      >
         {tabs.map((tab) => (
           <label className="command-group-tab" htmlFor={tab.id} key={`${tab.id}-label`}>
             {tab.label}
@@ -127,7 +134,7 @@ export function CommandGroup({ title, children }: CommandGroupProps) {
                   <span className="command-description">{tab.description}</span>
                 ) : null}
               </div>
-              <CopyButton text={tab.copyText} />
+              <CopyButton text={tab.copyText} uiCopy={copy} />
             </div>
             {renderCommandBody(tab.children, tab.copyText)}
           </div>

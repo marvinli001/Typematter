@@ -1,16 +1,21 @@
 ---
-title: Components
+title: 组件体系
 order: 3
-section: Core concepts
+section: 核心概念
+type: guide
 status: experimental
 version: 0.3.0-rc
+description: Typematter 内置 MDX 组件参考，覆盖语义说明与渲染示例。
+aliases:
+  - 组件
+  - mdx 组件
 ---
 
 文档组件用于表达语义，例如提示、对比、结构块与列布局。多数组件既可用 MDX 标签，也支持 Markdown 指令。
 
 如果你主要关心写法速查，而不是视觉效果，直接看[指令速查表](/cn/core-concepts/authoring-syntax)。
 
-## Callout
+## Callout 提示块
 
 Callout 用于提示类信息，建议按语义选择不同级别：
 
@@ -19,19 +24,19 @@ Callout 用于提示类信息，建议按语义选择不同级别：
 - `Warning`：橙色提示块，适合风险提示或强约束。
 - `Deprecated`：红色提示块，适合弃用说明与迁移提醒。
 
-<Tip title="Tip">
+<Tip title="提示">
 用于补充说明或小技巧提示。
 </Tip>
 
-<Info title="Info">
+<Info title="信息">
 用于稳定的规则或信息提示。
 </Info>
 
-<Warning title="Warning">
+<Warning title="警告">
 用于风险提示或强约束。
 </Warning>
 
-<Deprecated title="Deprecated">
+<Deprecated title="弃用">
 用于标记弃用功能或迁移提醒。
 </Deprecated>
 
@@ -45,7 +50,7 @@ Callout 用于提示类信息，建议按语义选择不同级别：
 > [!WARNING]
 > 用于风险提示或强约束说明。
 
-## Columns
+## Columns 分栏
 
 <Columns>
   <Column title="并列信息">
@@ -56,7 +61,7 @@ Callout 用于提示类信息，建议按语义选择不同级别：
   </Column>
 </Columns>
 
-## Cards
+## Cards 卡片
 
 卡片用于展示入口或推荐阅读，默认一行最多 4 个，移动端最多 2 个。
 
@@ -96,10 +101,10 @@ Callout 用于提示类信息，建议按语义选择不同级别：
 - [构建校验](/cn/api/build-validation) - CI 检查文档质量与链接。
 :::
 
-## Link Buttons
+## LinkButton 链接按钮
 
 <LinkButton href="/cn/get-started/quickstart" variant="primary">
-  开始快速开始
+  进入快速开始
 </LinkButton>
 <LinkButton
   href="/cn/core-concepts/components"
@@ -113,15 +118,15 @@ Callout 用于提示类信息，建议按语义选择不同级别：
   查看更新日志
 </LinkButton>
 
-## Badges
+## Badge 标签
 
-<Badge text="Beta" variant="note" />
-<Badge text="Stable" variant="success" />
-<Badge text="Caution" variant="caution" size="small" />
+<Badge text="测试版" variant="note" />
+<Badge text="稳定" variant="success" />
+<Badge text="注意" variant="caution" size="small" />
 
 行内语法：:badge[实验中]{variant="tip"}。
 
-## Math Equations
+## 数学公式
 
 行内公式用 `$...$`，块级公式用 `$$...$$`，渲染由 KaTeX 提供。
 
@@ -131,7 +136,7 @@ $$
 \int_0^1 x^2 \, dx = \frac{1}{3}
 $$
 
-## Diff Block
+## DiffBlock 对比块
 
 用于并排对比两个方案/版本，`beforeLabel` 与 `afterLabel` 可选，必要时再显示顶部标签。
 
@@ -146,7 +151,7 @@ $$
   </DiffColumn>
 </DiffBlock>
 
-## Code Block
+## 代码块
 
 使用标准 Markdown 代码块语法，渲染时自动应用统一样式与复制按钮。
 
@@ -155,7 +160,7 @@ export const navStrategy = "filesystem";
 export const contentPath = "content";
 ```
 
-## Colored Diffs
+## 差异高亮
 
 代码块中以 `+` / `-` 开头的行会自动渲染为增删差异背景。
 
@@ -164,7 +169,7 @@ export const contentPath = "content";
 + cache: "filesystem"
 ```
 
-## Code Tabs
+## CodeGroup / Tabs
 
 用于在同一块内切换多段代码。使用 `code-group` 指令即可，无需写额外 JSX。
 
@@ -201,7 +206,7 @@ static = true
 :::
 :::
 
-## Steps
+## Steps 步骤
 
 将有序列表渲染为步骤块，适合安装/迁移/排查流程。
 
@@ -211,7 +216,7 @@ static = true
 3. 构建前先执行 `npm run validate:docs`。
 :::
 
-## File Tree
+## FileTree 文件树
 
 将列表渲染为带文件/目录图标的可折叠树形结构。
 
@@ -225,7 +230,7 @@ static = true
 - package.json - 项目元信息
 :::
 
-## Details / Accordion
+## Details 折叠块
 
 折叠块用于放置补充说明或可选项，避免打断阅读主线。
 
@@ -233,34 +238,34 @@ static = true
 保持长说明的可读性，同时不干扰主流程。
 :::
 
-## Annotations
+## Annotation 注释
 
 在正文中插入注释标记，悬停或聚焦后显示解释内容。
 
 这个 API 仍在实验中：:annotation[查看迁移指南以了解限制。]{label="i" title="注意"}。
 
-## Feature Matrix
+## FeatureMatrix 能力矩阵
 
 用于对比多方案能力矩阵，仍使用 Markdown 表格语义即可。
 
 ::: feature-matrix
-| Capabilities | Chat Completions API | Responses API |
+| 能力 | Chat Completions API | Responses API |
 | --- | --- | --- |
-| Text generation | yes | yes |
-| Audio | yes | coming soon |
-| Vision | yes | yes |
-| Structured Outputs | yes | yes |
-| Function calling | yes | yes |
-| Web search | yes | yes |
-| File search | no | yes |
-| Computer use | no | yes |
-| Code interpreter | no | yes |
-| MCP | no | yes |
-| Image generation | no | yes |
-| Reasoning summaries | no | yes |
+| 文本生成 | 支持 | 支持 |
+| 音频 | 支持 | 即将支持 |
+| 视觉 | 支持 | 支持 |
+| Structured Outputs | 支持 | 支持 |
+| Function calling | 支持 | 支持 |
+| Web search | 支持 | 支持 |
+| File search | 不支持 | 支持 |
+| Computer use | 不支持 | 支持 |
+| Code interpreter | 不支持 | 支持 |
+| MCP | 不支持 | 支持 |
+| Image generation | 不支持 | 支持 |
+| Reasoning summaries | 不支持 | 支持 |
 :::
 
-## Endpoint / ParamTable / ResponseSchema
+## Endpoint / ParamTable / ResponseSchema API 结构
 
 这组组件适合 API 页面，重点是把接口头、参数、返回结构拆成稳定语义块，而不是堆散乱表格。
 
@@ -272,7 +277,7 @@ static = true
   auth="optional"
   since="0.3.0-rc"
 >
-  <ParamTable title="Path params">
+  <ParamTable title="路径参数">
     <ParamField name="slug" type="string[]" required>
       文档路由片段数组。
     </ParamField>
@@ -281,7 +286,7 @@ static = true
     </ParamField>
   </ParamTable>
 
-  <ResponseSchema title="200 Response" code="200" mediaType="application/json">
+  <ResponseSchema title="200 响应" code="200" mediaType="application/json">
     <SchemaField name="title" type="string" required description="页面标题" />
     <SchemaField name="section" type="string" required description="所属分组" />
     <SchemaField name="toc" type="TocItem[]" description="标题目录">
@@ -296,12 +301,12 @@ static = true
 
 ~~~mdx
 :::endpoint{method="GET" path="/v1/docs/[slug]" title="获取文档页面" summary="按路由返回 registry 中的页面元信息。" auth="optional" since="0.3.0-rc"}
-:::param-table[Path params]
+:::param-table[路径参数]
 ::param-field[slug]{type="string[]" required="true" description="文档路由片段数组。"}
 ::param-field[lang]{type='"cn" | "en"' default="cn" description="语言代码。"}
 :::
 
-:::response-schema[200 Response]{code="200" mediaType="application/json"}
+:::response-schema[200 响应]{code="200" mediaType="application/json"}
 ::schema-field[title]{type="string" required="true" description="页面标题"}
 ::schema-field[section]{type="string" required="true" description="所属分组"}
 :::schema-field[toc]{type="TocItem[]" description="标题目录"}
@@ -313,7 +318,7 @@ static = true
 :::
 ~~~
 
-## DoDont
+## DoDont 建议对照
 
 用于最佳实践、迁移规范、代码 review 规则这类非常高频的“该做 / 不该做”表达。
 
@@ -322,9 +327,9 @@ static = true
     对外字段名、枚举值和错误码应该保持长期稳定。
   </DoItem>
   <DoItem title="写清错误分支">
-    除了 happy path，也要明确 4xx / 5xx 的返回形态。
+    除了成功路径，也要明确 4xx / 5xx 的返回形态。
   </DoItem>
-  <DontItem title="不要把 breaking change 埋在正文里">
+  <DontItem title="不要把破坏性变更埋在正文里">
     版本破坏性变化应有显式标记，而不是只在长段落里顺带提到。
   </DontItem>
   <DontItem title="不要只给示例不给结构">
@@ -346,7 +351,7 @@ static = true
 :::
 ~~~
 
-## VersionGate
+## VersionGate 版本策略
 
 用于明确能力从何时可用、何时弃用、何时移除。
 
@@ -368,7 +373,7 @@ static = true
 :::
 ~~~
 
-## CommandGroup
+## CommandGroup 命令切换
 
 适合按包管理器、操作系统、运行环境切换命令。
 
@@ -411,34 +416,34 @@ npm run dev
 :::
 ~~~
 
-## PreviewFrame
+## PreviewFrame 预览框
 
 用于嵌入截图、录屏、产品 demo 或同源 iframe 页面。
 
 <PreviewFrame
   src="/cn/get-started/quickstart/"
-  title="Quickstart 页面预览"
+  title="快速开始页面预览"
   caption="适合放同源页面预览；如果是截图或录屏，也可以传图片或视频地址。"
 />
 
 ### 指令语法
 
 ~~~mdx
-::preview-frame[Quickstart 页面预览]{src="/cn/get-started/quickstart/" caption="适合放同源页面预览；如果是截图或录屏，也可以传图片或视频地址。"}
+::preview-frame[快速开始页面预览]{src="/cn/get-started/quickstart/" caption="适合放同源页面预览；如果是截图或录屏，也可以传图片或视频地址。"}
 ~~~
 
-## Timeline / ReleaseItem
+## Timeline / ReleaseItem 时间线
 
-适合版本演进、迁移路线、breaking changes 编年说明。
+适合版本演进、迁移路线、破坏性变更编年说明。
 
 <Timeline>
   <ReleaseItem version="0.1.0" date="2026-01-26" title="初版 shell">
     建立静态文档壳、MDX 内容读取和基础导航。
   </ReleaseItem>
-  <ReleaseItem version="0.2.0" date="2026-02-03" title="搜索与 Ask AI" status="Beta">
+  <ReleaseItem version="0.2.0" date="2026-02-03" title="搜索与 Ask AI" status="测试版">
     引入标准搜索索引与可选的 Ask AI 集成。
   </ReleaseItem>
-  <ReleaseItem version="0.3.0-rc" date="2026-03-12" title="Starter 与部署能力" status="Current">
+  <ReleaseItem version="0.3.0-rc" date="2026-03-12" title="Starter 与部署能力" status="当前">
     增加 `init` starter 流程、部署说明，以及更完整的 API 文档组件集。
   </ReleaseItem>
 </Timeline>
@@ -451,7 +456,7 @@ npm run dev
 建立静态文档壳、MDX 内容读取和基础导航。
 :::
 
-:::release-item[Starter 与部署能力]{version="0.3.0-rc" date="2026-03-12" status="Current"}
+:::release-item[Starter 与部署能力]{version="0.3.0-rc" date="2026-03-12" status="当前"}
 增加 `init` starter 流程、部署说明，以及更完整的 API 文档组件集。
 :::
 :::

@@ -32,7 +32,8 @@ export async function renderMdx(source: string, options?: RenderMdxOptions) {
   const mdxPluginConfig = collectMdxPlugins(plugins);
   const components = await resolveMdxComponents(
     options?.components ?? options?.page?.components,
-    mdxPluginConfig.components
+    mdxPluginConfig.components,
+    options?.page?.language
   );
 
   const { default: MDXContent } = await evaluate(source, {
@@ -61,4 +62,3 @@ export async function renderMdx(source: string, options?: RenderMdxOptions) {
   }
   return rendered;
 }
-

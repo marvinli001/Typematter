@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import type { NavGroup } from "../../lib/nav";
 import type { TocItem } from "../../lib/docs";
 import type { UiCopy } from "../../lib/i18n/ui-copy";
+import type { PageVersionInfo } from "../../lib/typematter/versioning";
 import siteConfig from "../../site.config";
 import RouteTransition from "../RouteTransition";
 import SearchModal from "../SearchModal";
@@ -37,6 +38,7 @@ type DocsShellProps = {
     prev?: { title: string; href: string };
     next?: { title: string; href: string };
   };
+  versionInfo?: PageVersionInfo;
   askAi?: {
     enabled: boolean;
     endpoint?: string;
@@ -73,6 +75,7 @@ export default function DocsShell({
   currentRoute,
   languages,
   pager,
+  versionInfo,
   askAi,
   askContext,
   standardSearch,
@@ -313,6 +316,105 @@ export default function DocsShell({
                         {tag}
                       </span>
                     ))}
+                  </div>
+                ) : null}
+                {versionInfo ? (
+                  <div className="doc-versioning">
+                    <div className="doc-versioning-title">
+                      {uiCopy.docsShell.versioning.title}
+                    </div>
+                    <div className="doc-versioning-grid">
+                      {versionInfo.currentVersion !== undefined ? (
+                        <span className="doc-versioning-item">
+                          <span className="doc-versioning-label">
+                            {uiCopy.docsShell.versioning.currentVersion}
+                          </span>
+                          <span className="doc-versioning-value">
+                            v{versionInfo.currentVersion}
+                          </span>
+                        </span>
+                      ) : null}
+                      {versionInfo.versions.length > 1 ? (
+                        <span className="doc-versioning-item">
+                          <span className="doc-versioning-label">
+                            {uiCopy.docsShell.versioning.otherVersions}
+                          </span>
+                          <span className="doc-versioning-links">
+                            {versionInfo.versions.map((item) =>
+                              item.current ? (
+                                <span className="doc-versioning-current" key={item.href}>
+                                  v{item.version}
+                                </span>
+                              ) : (
+                                <Link className="doc-versioning-link" href={item.href} key={item.href}>
+                                  v{item.version}
+                                </Link>
+                              )
+                            )}
+                          </span>
+                        </span>
+                      ) : null}
+                      {versionInfo.changelog ? (
+                        <span className="doc-versioning-item">
+                          <span className="doc-versioning-label">
+                            {uiCopy.docsShell.versioning.changelog}
+                          </span>
+                          <Link className="doc-versioning-link" href={versionInfo.changelog.href}>
+                            {versionInfo.changelog.title}
+                          </Link>
+                        </span>
+                      ) : null}
+                      {versionInfo.supersedes ? (
+                        <span className="doc-versioning-item">
+                          <span className="doc-versioning-label">
+                            {uiCopy.docsShell.versioning.supersedes}
+                          </span>
+                          <Link className="doc-versioning-link" href={versionInfo.supersedes.href}>
+                            {versionInfo.supersedes.title}
+                          </Link>
+                        </span>
+                      ) : null}
+                      {versionInfo.supersededBy ? (
+                        <span className="doc-versioning-item">
+                          <span className="doc-versioning-label">
+                            {uiCopy.docsShell.versioning.supersededBy}
+                          </span>
+                          <Link className="doc-versioning-link" href={versionInfo.supersededBy.href}>
+                            {versionInfo.supersededBy.title}
+                          </Link>
+                        </span>
+                      ) : null}
+                      {versionInfo.diffWith ? (
+                        <span className="doc-versioning-item">
+                          <span className="doc-versioning-label">
+                            {uiCopy.docsShell.versioning.compareWith}
+                          </span>
+                          <Link className="doc-versioning-link" href={versionInfo.diffWith.href}>
+                            {versionInfo.diffWith.title}
+                          </Link>
+                        </span>
+                      ) : null}
+                      {versionInfo.deprecatedIn !== undefined ? (
+                        <span className="doc-versioning-item">
+                          <span className="doc-versioning-label">
+                            {uiCopy.docsShell.versioning.deprecatedIn}
+                          </span>
+                          <span className="doc-versioning-value">
+                            {versionInfo.deprecatedIn}
+                          </span>
+                        </span>
+                      ) : null}
+                      {versionInfo.removedIn !== undefined ? (
+                        <span className="doc-versioning-item">
+                          <span className="doc-versioning-label">
+                            {uiCopy.docsShell.versioning.removedIn}
+                          </span>
+                          <span className="doc-versioning-value">
+                            {versionInfo.removedIn}
+                          </span>
+                        </span>
+                      ) : null}
+                    </div>
                   </div>
                 ) : null}
               </header>
