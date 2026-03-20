@@ -4,7 +4,7 @@ order: 1
 section: 更新日志
 type: changelog
 status: experimental
-version: 0.3.0-rc
+version: 0.4.0-rc
 description: Typematter 架构、校验、搜索与界面能力的版本更新记录。
 aliases:
   - 发行说明
@@ -14,55 +14,65 @@ aliases:
 此页面记录文档系统的结构与规范变更。
 
 <Timeline>
+  <ReleaseItem version="0.4.0-rc" date="2026-03-20" title="版本关联、中文检索与内容模板" status="Current">
+    <ul>
+      <li>新增特定模型禁用 thinking 的支持，允许在聊天补全阶段按模型能力差异关闭思维输出。</li>
+      <li>继续增强验证规则和插件架构：在配置中补齐 frontmatter schema、missing translations、heading depth 等规则入口，并引入更细的 schema 类型约束。</li>
+      <li>新增 `FrontmatterTypeRule` 与 `FrontmatterFieldRule` 类型，frontmatter schema 校验逻辑正式落到 validation 模块。</li>
+      <li>引入新的 plugin runner 来统一管理 build hooks，并更新构建与校验脚本以走新插件架构。</li>
+      <li>改进 validation 过程的报错和结果输出，registry 构建链也重构为支持插件与 context 管理。</li>
+      <li>调整 Ask Panel 的可见性逻辑与 active 态样式，减少搜索面板和 Ask 面板切换时的状态错位。</li>
+      <li>更新 `package.json` 与 `site.config.ts`，统一版本、依赖和站点配置表达。</li>
+      <li>补充 API 文档组件的 directive 转换：新增叶子指令处理，并支持 ParamField、SchemaField、ParamTable、ResponseSchema、Endpoint、DoDont、VersionGate、CommandGroup、PreviewFrame、ReleaseItem、Timeline 等结构。</li>
+      <li>增强 `remarkDocsComponents`，使其可以处理新的 directive 类型；同时更新 build registry 的组件别名与导航配置，补充 starter kit 的多语言内容与配置，并调整 TypeScript 配置排除 `starter-kit` 目录。</li>
+      <li>新增 `mdx-components.ts` 用于收集和归一化 MDX 组件名称，`registry.ts` 增加版本和 alias 字段，`search-utils.ts` 负责同义词和检索 token 扩展。</li>
+      <li>搜索与 Ask AI 检索进一步面向中文优化：`search.ts` 增加类型与 alias 字段，validation 扩展到新的 frontmatter 字段，新增 `versioning.ts` 用于管理页面版本信息，并同步支持多语言导航标题与 starter 内容翻译。</li>
+    </ul>
+  </ReleaseItem>
   <ReleaseItem version="0.3.0-rc" date="2026-03-12" title="核心 registry 与 Ask AI">
-    统一构建期 registry、校验、标准搜索和 Ask AI 交付链路。
+    <ul>
+      <li>引入新的 `typematter` 核心库（配置、插件架构、content registry、search index、验证系统），统一构建期扩展能力。</li>
+      <li>完成插件与构建类型体系（logger/build context/content page/validation report），并将 `ValidationReport` 重命名为 `PluginValidationReport` 以统一语义。</li>
+      <li>新增并整合文档质量校验规则：frontmatter、重复项、空目录、内部链接与锚点、导航配置、孤儿页面。</li>
+      <li>CLI 能力补齐：`dev`、`build`、`validate`、`export-registry`；并将校验逻辑拆分到独立脚本，提升可维护性。</li>
+      <li>站点与导航配置增强类型约束（含 `siteConfig` 注解），并简化 `DocsShell` 中仓库配置读取路径。</li>
+      <li>修复 `navConfig` 仓库 URL 访问、`next-env.d.ts` 导入路径等兼容性问题；升级 Next.js 到 `16.1.6`，并加入 PWA Service Worker。</li>
+      <li>新增 Ask AI 全链路：DocsShell 接入 Ask 配置与上下文、Cloudflare Worker `POST /v1/ask`、ask-index 构建输出与混合召回。</li>
+      <li>新增 Cloudflare AI Search 相关静态产物：自动生成 `robots.txt` 与 `sitemap.xml`。</li>
+      <li>Ask AI 交互持续完善：错误详情展开/复制、移除 recentLimit 并改为助手式会话 UI、回答支持 Markdown 渲染（ReactMarkdown）。</li>
+      <li>强化 Worker 与部署体验：CORS 与健康检查返回更多 origin 诊断信息，新增环境变量示例文件并更新本地/部署文档。</li>
+      <li>优化 Ask 模式搜索浮窗的自适应与扩展行为（提问后自动扩高），改善桌面与移动端可读性。</li>
+    </ul>
   </ReleaseItem>
   <ReleaseItem version="0.2.0-beta" date="2026-02-03" title="扩展 MDX 语义组件" status="Beta">
-    新增注释、折叠、步骤、卡片、标签和数学公式等语义块。
+    <ul>
+      <li>新增 Annotation、Details、Steps/Step、FileTree/FileTreeItem 组件，支持注释、折叠区块、步骤流与文件树结构。</li>
+      <li>新增 Cards 与 Badge 组件（含行内语法），并补充组件文档与示例。</li>
+      <li>扩展 MDX 处理流程：支持新的指令并加入数学公式渲染（remark-math + rehype-katex）。</li>
+      <li>改进侧边栏导航交互，增加更清晰的关闭按钮。</li>
+      <li>优化全局 body/html 样式，提升响应式与滚动体验。</li>
+      <li>修正文档链接并完善 remarkCodeTabs 的类型定义（加入 TableNode）。</li>
+    </ul>
+  </ReleaseItem>
+  <ReleaseItem version="0.1.5-alpha" date="2026-01-31" title="搜索与内容阅读打磨" status="Alpha">
+    <ul>
+      <li>SearchModal 支持高亮与更清晰的摘要展示（搜索词高亮、省略号、聚焦与自动聚焦）。</li>
+      <li>新增 CopyPageButton 与 Toc 组件，支持复制页面内容与目录滚动跟随。</li>
+      <li>新增 CodeTabs 与 FeatureMatrix 组件，支持代码切换与能力对比表。</li>
+      <li>更新 MDX 渲染以支持新指令（remark-directive、remark-code-tabs）。</li>
+      <li>扩展组件文档与示例（`components.mdx` 新增 Code Block、Code Tabs、Feature Matrix，中英文同步）。</li>
+    </ul>
   </ReleaseItem>
   <ReleaseItem version="0.1.0-alpha" date="2026-01-26" title="初始文档壳" status="Alpha">
-    建立 App Router 文档壳、MDX 渲染、导航与校验基础能力。
+    <ul>
+      <li>初始化 Next.js App Router 文档壳（MDX 渲染、三栏布局、目录、侧边栏）。</li>
+      <li>建立 `content/` 为唯一真相，按 cn/en 结构组织并自动生成导航与路由。</li>
+      <li>搜索弹窗支持全文模糊匹配与内容摘要。</li>
+      <li>主题切换、路由加载骨架、移动端侧边栏交互。</li>
+      <li>文档组件：Callout（Tip/Info/Warning/Deprecated）、DiffBlock、Columns、CodeBlock。</li>
+      <li>构建期文档校验与配置体系。</li>
+      <li>轻量语法高亮（rehype-highlight）。</li>
+    </ul>
   </ReleaseItem>
 </Timeline>
-
-## 0.3.0-rc
-
-- 引入新的 `typematter` 核心库（配置、插件架构、content registry、search index、验证系统），统一构建期扩展能力
-- 完成插件与构建类型体系（logger/build context/content page/validation report），并将 `ValidationReport` 重命名为 `PluginValidationReport` 以统一语义
-- 新增并整合文档质量校验规则：frontmatter、重复项、空目录、内部链接与锚点、导航配置、孤儿页面
-- CLI 能力补齐：`dev`、`build`、`validate`、`export-registry`；并将校验逻辑拆分到独立脚本，提升可维护性
-- 站点与导航配置增强类型约束（含 `siteConfig` 注解），并简化 `DocsShell` 中仓库配置读取路径
-- 修复 `navConfig` 仓库 URL 访问、`next-env.d.ts` 导入路径等兼容性问题；升级 Next.js 到 `16.1.6`，并加入 PWA Service Worker
-- 新增 Ask AI 全链路：DocsShell 接入 Ask 配置与上下文、Cloudflare Worker `POST /v1/ask`、ask-index 构建输出与混合召回
-- 新增 Cloudflare AI Search 相关静态产物：自动生成 `robots.txt` 与 `sitemap.xml`
-- Ask AI 交互持续完善：错误详情展开/复制、移除 recentLimit 并改为助手式会话 UI、回答支持 Markdown 渲染（ReactMarkdown）
-- 强化 Worker 与部署体验：CORS 与健康检查返回更多 origin 诊断信息，新增环境变量示例文件并更新本地/部署文档
-- 优化 Ask 模式搜索浮窗的自适应与扩展行为（提问后自动扩高），改善桌面与移动端可读性
-
-## 0.2.0-beta
-
-- 新增 Annotation、Details、Steps/Step、FileTree/FileTreeItem 组件，支持注释、折叠区块、步骤流与文件树结构
-- 新增 Cards 与 Badge 组件（含行内语法），并补充组件文档与示例
-- 扩展 MDX 处理流程：支持新的指令并加入数学公式渲染（remark-math + rehype-katex）
-- 改进侧边栏导航交互，增加更清晰的关闭按钮
-- 优化全局 body/html 样式，提升响应式与滚动体验
-- 修正文档链接并完善 remarkCodeTabs 的类型定义（加入 TableNode）
-
-## 0.1.5-alpha
-
-- SearchModal 支持高亮与更清晰的摘要展示（搜索词高亮、省略号、聚焦与自动聚焦）
-- 新增 CopyPageButton 与 Toc 组件，支持复制页面内容与目录滚动跟随
-- 新增 CodeTabs 与 FeatureMatrix 组件，支持代码切换与能力对比表
-- 更新 MDX 渲染以支持新指令（remark-directive、remark-code-tabs）
-- 扩展组件文档与示例（components.mdx 新增 Code Block、Code Tabs、Feature Matrix，中英文同步）
-
-## 0.1.0-alpha
-
-- 初始化 Next.js App Router 文档壳（MDX 渲染、三栏布局、目录、侧边栏）
-- 建立 content/ 为唯一真相，按 cn/en 结构组织并自动生成导航与路由
-- 搜索弹窗支持全文模糊匹配与内容摘要
-- 主题切换、路由加载骨架、移动端侧边栏交互
-- 文档组件：Callout（Tip/Info/Warning/Deprecated）、DiffBlock、Columns、CodeBlock
-- 构建期文档校验与配置体系
-- 轻量语法高亮（rehype-highlight）
 

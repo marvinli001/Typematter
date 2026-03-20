@@ -4,7 +4,7 @@ order: 4
 section: Core concepts
 type: guide
 status: experimental
-version: 0.3.0-rc
+version: 0.4.0-rc
 description: Markdown directive cheat sheet for writing Typematter content with stable semantics.
 aliases:
   - directives
@@ -137,7 +137,7 @@ This feature still has constraints: :annotation[Read the deployment page for the
 ### Endpoint / ParamTable / ResponseSchema
 
 ~~~mdx
-:::endpoint{method="GET" path="/v1/docs/[slug]" title="Fetch a doc page" summary="Returns route metadata." auth="optional" since="0.3.0-rc"}
+:::endpoint{method="GET" path="/v1/docs/[slug]" title="Fetch a doc page" summary="Returns route metadata." auth="optional" since="0.4.0-rc"}
 :::param-table[Path params]
 ::param-field[slug]{type="string[]" required="true" description="Route segments for the document."}
 ::param-field[lang]{type='"cn" | "en"' default="cn" description="Language code."}
@@ -209,8 +209,8 @@ npm run dev
 ::preview-frame[Quickstart page preview]{src="/en/get-started/quickstart/" caption="Works for same-origin pages, screenshots, or recordings."}
 
 :::timeline
-:::release-item[Starter and deployment]{version="0.3.0-rc" date="2026-03-12" status="Current"}
-Added the `init` starter flow, deployment docs, and a fuller API component set.
+:::release-item[Versioning and localized search]{version="0.4.0-rc" date="2026-03-20" status="Current"}
+Added version links, document-type templates, richer Chinese search aliases, and improved Ask AI retrieval.
 :::
 :::
 ~~~

@@ -1,6 +1,6 @@
 {
   "name": "typematter",
-  "version": "0.3.0-rc",
+  "version": "0.4.0-rc",
   "private": true,
   "bin": {
     "typematter": "bin/typematter.js"

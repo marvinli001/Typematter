@@ -360,7 +360,9 @@ export default function DocsShell({
                             {uiCopy.docsShell.versioning.changelog}
                           </span>
                           <Link className="doc-versioning-link" href={versionInfo.changelog.href}>
-                            {versionInfo.changelog.title}
+                            {versionInfo.changelog.version !== undefined
+                              ? `v${versionInfo.changelog.version}`
+                              : versionInfo.changelog.title}
                           </Link>
                         </span>
                       ) : null}

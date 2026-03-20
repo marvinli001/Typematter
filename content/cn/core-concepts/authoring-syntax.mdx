@@ -4,7 +4,7 @@ order: 4
 section: 核心概念
 type: guide
 status: experimental
-version: 0.3.0-rc
+version: 0.4.0-rc
 description: Typematter Markdown 指令速查表，帮助内容作者稳定编写语义化文档。
 aliases:
   - 指令语法
@@ -137,7 +137,7 @@ Typematter 当前处于 :badge[实验中]{variant="note"} 阶段。
 ### Endpoint / ParamTable / ResponseSchema
 
 ~~~mdx
-:::endpoint{method="GET" path="/v1/docs/[slug]" title="获取文档页面" summary="按路由返回页面元信息。" auth="optional" since="0.3.0-rc"}
+:::endpoint{method="GET" path="/v1/docs/[slug]" title="获取文档页面" summary="按路由返回页面元信息。" auth="optional" since="0.4.0-rc"}
 :::param-table[路径参数]
 ::param-field[slug]{type="string[]" required="true" description="文档路由片段数组。"}
 ::param-field[lang]{type='"cn" | "en"' default="cn" description="语言代码。"}
@@ -209,8 +209,8 @@ npm run dev
 ::preview-frame[快速开始页面预览]{src="/cn/get-started/quickstart/" caption="同源页面、截图或录屏都可以。"}
 
 :::timeline
-:::release-item[Starter 与部署能力]{version="0.3.0-rc" date="2026-03-12" status="当前"}
-增加 `init` starter 流程、部署说明，以及更完整的 API 组件。
+:::release-item[版本关联与中文搜索]{version="0.4.0-rc" date="2026-03-20" status="当前"}
+增加版本关联面板、文档类型模板、中文别名召回，以及更稳的 Ask AI 检索体验。
 :::
 :::
 ~~~

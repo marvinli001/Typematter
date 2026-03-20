@@ -4,7 +4,7 @@ order: 3
 section: Core concepts
 type: guide
 status: experimental
-version: 0.3.0-rc
+version: 0.4.0-rc
 description: Reference for Typematter's built-in MDX components, semantics, and rendered examples.
 aliases:
   - mdx components
@@ -275,7 +275,7 @@ Use this set for API reference pages. The goal is to split endpoint header, para
   title="Fetch a doc page"
   summary="Returns registry metadata for a route."
   auth="optional"
-  since="0.3.0-rc"
+  since="0.4.0-rc"
 >
   <ParamTable title="Path params">
     <ParamField name="slug" type="string[]" required>
@@ -300,7 +300,7 @@ Use this set for API reference pages. The goal is to split endpoint header, para
 ### Directive syntax
 
 ~~~mdx
-:::endpoint{method="GET" path="/v1/docs/[slug]" title="Fetch a doc page" summary="Returns registry metadata for a route." auth="optional" since="0.3.0-rc"}
+:::endpoint{method="GET" path="/v1/docs/[slug]" title="Fetch a doc page" summary="Returns registry metadata for a route." auth="optional" since="0.4.0-rc"}
 :::param-table[Path params]
 ::param-field[slug]{type="string[]" required="true" description="Route segments for the document."}
 ::param-field[lang]{type='"cn" | "en"' default="cn" description="Language code."}
@@ -443,8 +443,8 @@ Use it for version history, migration stages, and breaking change narratives.
   <ReleaseItem version="0.2.0" date="2026-02-03" title="Search and Ask AI" status="Beta">
     Added standard search assets and optional Ask AI integration.
   </ReleaseItem>
-  <ReleaseItem version="0.3.0-rc" date="2026-03-12" title="Starter and deployment" status="Current">
-    Added the `init` starter flow, deployment docs, and a fuller API documentation component set.
+  <ReleaseItem version="0.4.0-rc" date="2026-03-20" title="Versioning and localized search" status="Current">
+    Added version links, document-type templates, richer Chinese search aliases, and improved Ask AI retrieval.
   </ReleaseItem>
 </Timeline>
 
@@ -456,8 +456,8 @@ Use it for version history, migration stages, and breaking change narratives.
 Introduced the static docs shell, MDX loading, and base navigation.
 :::
 
-:::release-item[Starter and deployment]{version="0.3.0-rc" date="2026-03-12" status="Current"}
-Added the `init` starter flow, deployment docs, and a fuller API documentation component set.
+:::release-item[Versioning and localized search]{version="0.4.0-rc" date="2026-03-20" status="Current"}
+Added version links, document-type templates, richer Chinese search aliases, and improved Ask AI retrieval.
 :::
 :::
 ~~~

@@ -4,7 +4,7 @@ order: 3
 section: 核心概念
 type: guide
 status: experimental
-version: 0.3.0-rc
+version: 0.4.0-rc
 description: Typematter 内置 MDX 组件参考，覆盖语义说明与渲染示例。
 aliases:
   - 组件
@@ -275,7 +275,7 @@ static = true
   title="获取文档页面"
   summary="按路由返回 registry 中的页面元信息。"
   auth="optional"
-  since="0.3.0-rc"
+  since="0.4.0-rc"
 >
   <ParamTable title="路径参数">
     <ParamField name="slug" type="string[]" required>
@@ -300,7 +300,7 @@ static = true
 ### 指令语法
 
 ~~~mdx
-:::endpoint{method="GET" path="/v1/docs/[slug]" title="获取文档页面" summary="按路由返回 registry 中的页面元信息。" auth="optional" since="0.3.0-rc"}
+:::endpoint{method="GET" path="/v1/docs/[slug]" title="获取文档页面" summary="按路由返回 registry 中的页面元信息。" auth="optional" since="0.4.0-rc"}
 :::param-table[路径参数]
 ::param-field[slug]{type="string[]" required="true" description="文档路由片段数组。"}
 ::param-field[lang]{type='"cn" | "en"' default="cn" description="语言代码。"}
@@ -443,8 +443,8 @@ npm run dev
   <ReleaseItem version="0.2.0" date="2026-02-03" title="搜索与 Ask AI" status="测试版">
     引入标准搜索索引与可选的 Ask AI 集成。
   </ReleaseItem>
-  <ReleaseItem version="0.3.0-rc" date="2026-03-12" title="Starter 与部署能力" status="当前">
-    增加 `init` starter 流程、部署说明，以及更完整的 API 文档组件集。
+  <ReleaseItem version="0.4.0-rc" date="2026-03-20" title="版本关联与中文搜索" status="当前">
+    增加版本关联面板、文档类型模板、中文别名召回，以及更稳的 Ask AI 检索体验。
   </ReleaseItem>
 </Timeline>
 
@@ -456,8 +456,8 @@ npm run dev
 建立静态文档壳、MDX 内容读取和基础导航。
 :::
 
-:::release-item[Starter 与部署能力]{version="0.3.0-rc" date="2026-03-12" status="当前"}
-增加 `init` starter 流程、部署说明，以及更完整的 API 文档组件集。
+:::release-item[版本关联与中文搜索]{version="0.4.0-rc" date="2026-03-20" status="当前"}
+增加版本关联面板、文档类型模板、中文别名召回，以及更稳的 Ask AI 检索体验。
 :::
 :::
 ~~~

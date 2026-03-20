@@ -4,7 +4,7 @@ order: 1
 section: Changelog
 type: changelog
 status: experimental
-version: 0.3.0-rc
+version: 0.4.0-rc
 description: Release log for Typematter architecture, validation, search, and UI changes.
 aliases:
   - release notes
@@ -14,56 +14,66 @@ aliases:
 This page tracks changes to the docs system structure and conventions.
 
 <Timeline>
+  <ReleaseItem version="0.4.0-rc" date="2026-03-20" title="Version links, localized search, and content templates" status="Current">
+    <ul>
+      <li>Added support for disabling thinking on specific chat-completion models so model-specific behavior can be controlled at request time.</li>
+      <li>Expanded validation and plugin architecture: new config entries for frontmatter schema, missing translations, and heading depth, plus stronger schema typing for validation rules.</li>
+      <li>Introduced `FrontmatterTypeRule` and `FrontmatterFieldRule`, and implemented full frontmatter schema validation logic inside the validation pipeline.</li>
+      <li>Added a dedicated plugin runner to coordinate build hooks, then updated build and validation scripts to use that plugin architecture end to end.</li>
+      <li>Improved validation error handling and reporting, and refactored registry building to support plugins and context-aware execution.</li>
+      <li>Refined Ask Panel visibility logic and active-state styling so search and Ask transitions behave more predictably.</li>
+      <li>Updated `package.json` and `site.config.ts` for version consistency, dependency alignment, and configuration cleanup.</li>
+      <li>Added directive transformations for API documentation components, including leaf directives and support for ParamField, SchemaField, ParamTable, ResponseSchema, Endpoint, DoDont, VersionGate, CommandGroup, PreviewFrame, ReleaseItem, and Timeline.</li>
+      <li>Extended `remarkDocsComponents`, build-registry component aliases, navigation structure, starter kit content/config, and TypeScript exclusions so the new documentation primitives work cleanly across multilingual starter projects.</li>
+      <li>Added `mdx-components.ts` for MDX component collection and normalization, expanded registry/search metadata with aliases and version fields, introduced `search-utils.ts` for token expansion, and added `versioning.ts` for page-level version relationships.</li>
+      <li>Improved Chinese search and Ask AI retrieval by adding synonym expansion, route/component aliases, richer validation for new frontmatter fields, multilingual navigation-title support, and translated starter content.</li>
+    </ul>
+  </ReleaseItem>
   <ReleaseItem version="0.3.0-rc" date="2026-03-12" title="Core registry and Ask AI">
-    Consolidated build-time registry, validation, standard search, and Ask AI delivery.
+    <ul>
+      <li>Introduced the new `typematter` core library (configuration, plugin architecture, content registry, search indexing, validation), consolidating build-time extensibility.</li>
+      <li>Completed the plugin/build typing model (logger, build context, content page, validation report) and renamed `ValidationReport` to `PluginValidationReport` for consistency.</li>
+      <li>Added and integrated doc-quality validation rules: frontmatter, duplicates, empty directories, internal links/anchors, nav config, and orphan pages.</li>
+      <li>Expanded CLI capabilities: `dev`, `build`, `validate`, `export-registry`; and moved validation logic into a dedicated script for maintainability.</li>
+      <li>Strengthened typing in site/nav configuration (including explicit `siteConfig` annotation), and simplified repository config access in `DocsShell`.</li>
+      <li>Fixed repository URL access in nav config and import path issues in `next-env.d.ts`; upgraded Next.js to `16.1.6` and added PWA Service Worker support.</li>
+      <li>Added the full Ask AI path: DocsShell Ask config/context, Cloudflare Worker `POST /v1/ask`, ask-index generation, and hybrid recall flow.</li>
+      <li>Added Cloudflare AI Search static artifacts: automatic `robots.txt` and `sitemap.xml` generation.</li>
+      <li>Improved Ask AI UX: detailed error expand/copy, removed recentLimit in favor of assistant-style conversation UI, and Markdown answer rendering via ReactMarkdown.</li>
+      <li>Improved Worker and deployment operations: richer CORS/health origin diagnostics, plus environment variable templates and updated local/deploy docs.</li>
+      <li>Enhanced Ask-mode search modal responsiveness and expansion behavior (auto-expand after a question) across desktop and mobile.</li>
+    </ul>
   </ReleaseItem>
   <ReleaseItem version="0.2.0-beta" date="2026-02-03" title="Expanded MDX primitives" status="Beta">
-    Added new semantic blocks for annotation, details, steps, cards, badges, and math rendering.
+    <ul>
+      <li>Added Annotation, Details, Steps/Step, and FileTree/FileTreeItem components to support annotations, collapsible sections, step flows, and file hierarchies in MDX.</li>
+      <li>Added Cards and Badge components (including inline syntax) and refreshed component docs/examples.</li>
+      <li>Extended the MDX pipeline to recognize new directives and render math via remark-math + rehype-katex.</li>
+      <li>Improved sidebar navigation behavior with a clearer close button.</li>
+      <li>Refined global body/html styles for better responsiveness and scrolling.</li>
+      <li>Cleaned up documentation links and expanded remarkCodeTabs typing to include TableNode.</li>
+    </ul>
+  </ReleaseItem>
+  <ReleaseItem version="0.1.5-alpha" date="2026-01-31" title="Search and reading refinements" status="Alpha">
+    <ul>
+      <li>Improved SearchModal with highlighted terms, clearer snippets, ellipsis handling, focus management, and autoFocus behavior.</li>
+      <li>Introduced CopyPageButton and Toc components for page copy and scroll-aware table of contents behavior.</li>
+      <li>Added CodeTabs and FeatureMatrix components for code switching and capability comparison.</li>
+      <li>Updated MDX rendering to support new directives (`remark-directive`, `remark-code-tabs`).</li>
+      <li>Expanded component docs and examples in both English and Chinese.</li>
+    </ul>
   </ReleaseItem>
   <ReleaseItem version="0.1.0-alpha" date="2026-01-26" title="Initial docs shell" status="Alpha">
-    Established the App Router docs shell, MDX rendering, navigation, and validation baseline.
+    <ul>
+      <li>Initialized the Next.js App Router docs shell (MDX rendering, three-column layout, TOC, sidebar).</li>
+      <li>Established `content/` as the single source of truth with cn/en structure and automatic nav/route generation.</li>
+      <li>Added the first search modal with full-text fuzzy matching and content snippets.</li>
+      <li>Added theme switching, route loading skeletons, and mobile sidebar interactions.</li>
+      <li>Shipped the initial doc components: Callout (Tip/Info/Warning/Deprecated), DiffBlock, Columns, and CodeBlock.</li>
+      <li>Added the build-time docs validation and configuration foundation.</li>
+      <li>Added lightweight syntax highlighting via rehype-highlight.</li>
+    </ul>
   </ReleaseItem>
 </Timeline>
-
-## 0.3.0-rc
-
-- Introduced the new `typematter` core library (configuration, plugin architecture, content registry, search indexing, validation), consolidating build-time extensibility
-- Completed the plugin/build typing model (logger, build context, content page, validation report) and renamed `ValidationReport` to `PluginValidationReport` for consistency
-- Added and integrated doc-quality validation rules: frontmatter, duplicates, empty directories, internal links/anchors, nav config, and orphan pages
-- Expanded CLI capabilities: `dev`, `build`, `validate`, `export-registry`; and moved validation logic into a dedicated script for maintainability
-- Strengthened typing in site/nav configuration (including explicit `siteConfig` annotation), and simplified repository config access in `DocsShell`
-- Fixed repository URL access in nav config and import path issues in `next-env.d.ts`; upgraded Next.js to `16.1.6` and added PWA Service Worker support
-- Added the full Ask AI path: DocsShell Ask config/context, Cloudflare Worker `POST /v1/ask`, ask-index generation, and hybrid recall flow
-- Added Cloudflare AI Search static artifacts: automatic `robots.txt` and `sitemap.xml` generation
-- Improved Ask AI UX: detailed error expand/copy, removed recentLimit in favor of assistant-style conversation UI, and Markdown answer rendering via ReactMarkdown
-- Improved Worker and deployment operations: richer CORS/health origin diagnostics, plus environment variable template and updated local/deploy docs
-- Enhanced Ask-mode search modal responsiveness and expansion behavior (auto-expand after a question) across desktop and mobile
-
-## 0.2.0-beta
-
-- Added Annotation, Details, Steps/Step, and FileTree/FileTreeItem components to support annotations, collapsible sections, step flows, and file hierarchies in MDX
-- Added Cards and Badge components (including inline syntax) and refreshed component docs/examples
-- Extended the MDX pipeline to recognize new directives and render math via remark-math + rehype-katex
-- Improved sidebar navigation behavior with a clearer close button
-- Refined global body/html styles for better responsiveness and scrolling
-- Cleaned up documentation links and expanded remarkCodeTabs typing to include TableNode
-
-## 0.1.5-alpha
-
-- SearchModal improvements with highlighted terms and clearer snippets (ellipsis, focus handling, autoFocus)
-- Introduced CopyPageButton and Toc components for page copy and scroll-aware TOC
-- Added CodeTabs and FeatureMatrix components for code switching and capability comparison
-- Updated MDX rendering to support new directives (remark-directive, remark-code-tabs)
-- Expanded component docs and examples (components.mdx updates in both English and Chinese)
-
-## 0.1.0-alpha
-
-- Initialize Next.js App Router docs shell (MDX rendering, three-column layout, TOC, sidebar)
-- Establish content/ as the single source of truth with cn/en structure and auto nav/route generation
-- Search modal with full-text fuzzy matching and content snippets
-- Theme switcher, route loading skeleton, mobile sidebar interactions
-- Doc components: Callout (Tip/Info/Warning/Deprecated), DiffBlock, Columns, CodeBlock
-- Build-time docs validation and configuration system
-- Lightweight syntax highlighting (rehype-highlight)
 
 
