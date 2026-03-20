@@ -14,32 +14,32 @@ aliases:
 
 Typematter currently targets **Next.js static export**, so `npm run build` writes a fully static site into `out/`.
 
-## How the official repo and user repos should coexist
+## Recommended Repository Model
 
-This repository should remain your:
+The official Typematter repository is best treated as:
 
 - official documentation site
 - live demo
 - capability showcase
 
-But adopters should **not** keep writing inside this same repo with your official docs bundled in.
+For real adoption, generate a separate docs repository for each team or product instead of continuing to author inside the official repo. That keeps official examples, demos, and product-specific content isolated, and makes configuration and release workflows easier to manage.
 
 <Callout type="info" title="Recommended setup">
-Keep this repository as the maintained official site. For adopters, generate a clean starter with `npm run typematter -- init --dir ../my-docs`.
+Treat the official repository as a reference implementation or demo site. For actual use, generate a clean project with `npm run typematter -- init --dir ../my-docs` and maintain docs in that new repository.
 </Callout>
 
-## Reuse flow for adopters
+## Generate a Standalone Project From the Official Repo
 
 ::: steps
 1. Clone the official Typematter repository.
 2. Run `npm run typematter -- init --dir ../my-docs` outside the repo.
 3. Enter the new directory and run `npm install` and `npm run dev`.
-4. Replace `content/`, then update `site.config.ts` and `nav.config.ts`.
+4. Replace `content/`, then update `site.config.ts` and `nav.config.ts` for the target information architecture.
 :::
 
 ## Required environment variables before build
 
-Minimum required:
+Required:
 
 - `TYPEMATTER_SITE_URL=https://docs.example.com`
 
@@ -57,9 +57,9 @@ It controls the absolute domain emitted into `robots.txt` and `sitemap.xml` duri
 ## Production deployment
 
 ::: steps
-1. Copy `.env.example` and fill in your domain and optional Ask AI values.
-2. Run `npm run validate:docs`.
-3. Run `npm run build`.
+1. Copy `.env.example` and fill in the site domain and optional Ask AI values.
+2. Run `npm run validate:docs` to verify content, navigation, and links before deployment.
+3. Run `npm run build` to generate the static site and search artifacts.
 4. Deploy the `out/` directory to any static host.
 :::
 
@@ -106,7 +106,7 @@ npx serve out
 
 ## Ask AI is optional and separate from static hosting
 
-The static docs site does not depend on the Worker. You only need extra setup if you want Ask AI:
+The static docs site does not depend on the Worker. Additional setup is only required when Ask AI should be enabled:
 
 - `integrations/cloudflare-ask-ai-worker/README.md`
 - `NEXT_PUBLIC_TYPEMATTER_ASK_AI_ENDPOINT`
@@ -119,11 +119,11 @@ The static docs site does not depend on the Worker. You only need extra setup if
 
 ### Build fails on orphan pages or broken links
 
-Typematter validates doc quality before building. Run `npm run validate:docs` first and fix the reported docs issue.
+Typematter validates doc quality before building. Run `npm run validate:docs` first, then fix the reported content, navigation, or link issue.
 
-### I want a clean project, not the official docs bundled in
+### I want a clean project without the official docs content
 
-Use `npm run typematter -- init --dir ../my-docs` instead of continuing to write inside this official repository.
+Use `npm run typematter -- init --dir ../my-docs` instead of continuing to write inside the official repository.
 
 <Details summary="Why TYPEMATTER_SITE_URL is required">
   Typematter uses it to emit absolute URLs inside `robots.txt` and `sitemap.xml`. Without it, the generated files fall back to an example domain.
