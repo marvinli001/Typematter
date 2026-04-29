@@ -2,16 +2,24 @@ import { defineSiteConfig } from "./lib/typematter/config";
 import type { SiteConfig } from "./lib/typematter/config";
 import { createDefaultValidationConfig } from "./lib/typematter/default-validation";
 
+const repoUrl = process.env.TYPEMATTER_REPO_URL?.trim();
+const repoBranch = process.env.TYPEMATTER_REPO_BRANCH?.trim() || "main";
+const docsPath = process.env.TYPEMATTER_REPO_DOCS_PATH?.trim() || "content";
+const editBaseUrl = process.env.TYPEMATTER_EDIT_BASE_URL?.trim();
+const feedbackUrl = process.env.TYPEMATTER_FEEDBACK_URL?.trim();
+
 const siteConfig: SiteConfig = defineSiteConfig({
   title: "Typematter",
   siteUrl: process.env.TYPEMATTER_SITE_URL ?? process.env.NEXT_PUBLIC_SITE_URL,
-  repo: {
-    url: "https://example.com/typematter",
-    branch: "main",
-    docsPath: "content",
-    editBaseUrl: "https://example.com/typematter/edit/main",
-  },
-  feedback: { url: "mailto:docs@example.com" },
+  repo: repoUrl
+    ? {
+        url: repoUrl,
+        branch: repoBranch,
+        docsPath,
+        editBaseUrl,
+      }
+    : undefined,
+  feedback: feedbackUrl ? { url: feedbackUrl } : undefined,
   i18n: {
     defaultLanguage: "cn",
     languages: [

@@ -6,62 +6,103 @@ type: guide
 status: experimental
 version: 0.4.0-rc
 pager: true
-description: 快速开始指南，介绍内容目录、路由生成和组件注册流程。
+description: 快速开始指南，介绍如何创建 Typematter 文档项目、编写 MDX 页面并在部署前完成校验。
 aliases:
   - 入门
   - 快速上手
 ---
 
-本页带你理解内容目录、路由生成与组件注册。
+把官方仓库当作 demo 和参考实现。真正写团队或产品文档时，先生成一个独立 starter 项目，再在新项目里维护内容。
 
-## 1. 目录结构
+## 1. 创建干净的文档项目
 
+在 Typematter 官方仓库根目录执行：
+
+```bash
+npm install
+npm run typematter -- init --dir ../my-docs
+cd ../my-docs
+cp .env.example .env.local
+npm install
+npm run dev
 ```
+
+<Callout type="note" title="目标目录">
+`typematter init` 会把文档壳和 starter 内容复制到新目录。目标目录必须位于官方 Typematter 仓库外部。
+</Callout>
+
+## 2. 理解内容目录
+
+starter 默认是双语结构，所以内容位于语言目录下：
+
+```text
 content/
-  get-started/
-    quickstart.mdx
-  core-concepts/
-    navigation.mdx
+  cn/
+    index.mdx
+    get-started/
+      quickstart.mdx
+  en/
+    index.mdx
+    get-started/
+      quickstart.mdx
 ```
 
-## 2. 添加页面
+MDX 文件创建页面。目录与 frontmatter 描述信息层级。`nav.config.ts` 负责分组、排序、隐藏和外链。
+
+## 3. 创建页面
+
+为所有已配置语言创建占位页：
+
+```bash
+npm run typematter -- new --all-languages --slug guides/install --title.en "Install" --title.cn "安装" --section.en "Guides" --section.cn "指南"
+```
+
+只创建单个语言：
+
+```bash
+npm run typematter -- new --lang cn --slug guides/install --title "安装" --section "指南"
+```
+
+命令会写入带必填 frontmatter 的 MDX 文件：
 
 ```mdx
 ---
-title: 项目结构
-order: 3
-section: 开始使用
-status: experimental
-version: 0.4.0-rc
+title: "安装"
+order: 100
+section: "指南"
+type: "guide"
+pager: true
+description: "TODO: 补充「安装」的页面摘要。"
 ---
-
-# 项目结构
 ```
 
-<Callout type="note" title="前置字段">
-每个页面必须包含 `title`、`order`、`section`。`status`、`version` 与 `tags` 为可选字段，用于展示状态与标签气泡。
+<Callout type="warning" title="翻译页">
+如果启用了 i18n 校验，只新增一个语言的页面可能会因为缺少对应翻译而校验失败。草稿期建议使用 `--all-languages`。
 </Callout>
 
-## 3. 版本差异示例
+## 4. 需要时固定到导航
 
-<DiffBlock beforeLabel="v0.8" afterLabel="v0.9">
-  <DiffColumn>
-    <code>navStrategy: "manual"</code>
-    <p>手工维护侧边栏。</p>
-  </DiffColumn>
-  <DiffColumn highlight>
-    <code>navStrategy: "filesystem"</code>
-    <p>导航从目录结构自动生成。</p>
-  </DiffColumn>
-</DiffBlock>
+页面从 `content/` 自动发现，但侧边栏由 `nav.config.ts` 管理。
+
+```ts
+{ type: "doc", slug: "guides/install" }
+```
+
+如果希望没有手动写进分组的有效页面也自动出现，保留 `appendUnlisted: true`。
+
+## 5. 部署前校验
+
+```bash
+npm run validate:docs
+npm run build
+```
+
+校验会检查链接、标题锚点、重复标题、重复路由、孤儿页面、元数据、翻译结构和文档类型约定。
 
 ## 下一步
 
+- [项目结构](./project-structure)
 - [导航规则](../core-concepts/navigation)
+- [指令速查表](../core-concepts/authoring-syntax)
 - [组件规范](../core-concepts/components)
 - [部署与 starter 使用](./deployment)
-
-
-
-
-

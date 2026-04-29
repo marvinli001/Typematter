@@ -4,34 +4,61 @@ order: 2
 section: Get started
 type: guide
 pager: true
-description: Starter quickstart for installing dependencies and replacing sample content.
+description: Starter quickstart for installing dependencies, creating pages, updating navigation, and validating docs.
 ---
 
 ## 1. Install and run
 
 ```bash
+cp .env.example .env.local
 npm install
 npm run dev
 ```
 
-## 2. Replace the sample content
+## 2. Create a page
 
-Create your own MDX tree under `content/`.
+For every configured language:
+
+```bash
+npm run typematter -- new --all-languages --slug guides/install --title.en "Install" --title.cn "安装" --section.en "Guides" --section.cn "指南"
+```
+
+For one language:
+
+```bash
+npm run typematter -- new --lang en --slug guides/install --title "Install" --section "Guides"
+```
+
+## 3. Replace the sample content
+
+Your MDX source lives under `content/`.
 
 ```text
 content/
   en/
     index.mdx
-    get-started/
-      quickstart.mdx
+    guides/
+      install.mdx
   cn/
     index.mdx
+    guides/
+      install.mdx
 ```
 
-## 3. Update navigation
+## 4. Update navigation
 
-Navigation lives in `nav.config.ts`. It controls display order, not page creation.
+`nav.config.ts` controls grouping, display order, hidden items, and external links. It does not create pages; MDX files do.
+
+```ts
+{ type: "doc", slug: "guides/install" }
+```
 
 <Callout type="note" title="Required frontmatter">
-Every page needs `title`, `order`, and `section` in frontmatter.
+Every page needs `title`, `order`, `section`, `type`, and `description` for the default validator.
 </Callout>
+
+## 5. Validate
+
+```bash
+npm run validate:docs
+```

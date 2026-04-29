@@ -4,27 +4,52 @@ order: 3
 section: Get started
 type: guide
 pager: true
-description: Starter deployment guide for static export output and basic hosting flow.
+description: Starter deployment guide for static export, environment variables, validation, preview, and hosting.
 ---
 
-Typematter currently targets Next.js static export mode, which writes the final site into `out/`.
+Typematter exports a static site into `out/`. Deploy that directory.
 
-## Recommended flow
+## 1. Configure production URL
 
-::: steps
-1. Set `TYPEMATTER_SITE_URL=https://docs.example.com`.
+```bash
+cp .env.example .env.local
+```
+
+Set:
+
+```bash
+TYPEMATTER_SITE_URL=https://docs.example.com
+NEXT_PUBLIC_SITE_URL=https://docs.example.com
+```
+
+`TYPEMATTER_SITE_URL` is used to generate `robots.txt` and `sitemap.xml`.
+
+## 2. Validate and build
+
+:::steps
+1. Run `npm run validate:docs`.
 2. Run `npm run build`.
-3. Deploy the `out/` directory to any static host.
+3. Preview with `npm start`.
+4. Deploy `out/`.
 :::
 
-## Good hosting targets
+## 3. Choose a static host
 
 <Cards columns="3" mobileColumns="1">
-  <Card title="Vercel" description="Build and publish the static output directly." />
-  <Card title="Cloudflare Pages" description="Good fit for globally distributed static hosting." />
-  <Card title="Nginx / OSS / S3" description="Anything that can serve HTML, CSS, and JS works." />
+  <Card title="Vercel" description="Build command npm run build, output directory out." />
+  <Card title="Cloudflare Pages" description="Build on push and publish out." />
+  <Card title="Nginx / S3 / R2 / OSS" description="Upload out as static files." />
 </Cards>
 
-<Details summary="Why TYPEMATTER_SITE_URL matters">
-  It is used to emit absolute URLs in `robots.txt` and `sitemap.xml`.
+## Optional Ask AI
+
+The static docs site works without Ask AI. To enable the AI tab, deploy the Worker from `integrations/cloudflare-ask-ai-worker/` and set:
+
+```bash
+NEXT_PUBLIC_TYPEMATTER_ASK_AI_ENDPOINT=https://your-worker-domain.workers.dev
+NEXT_PUBLIC_TYPEMATTER_ASK_AI_TIMEOUT_MS=25000
+```
+
+<Details summary="Generated files">
+  Build output includes `out/typematter/search/`, `out/typematter/ask-index.json`, `out/robots.txt`, and `out/sitemap.xml`.
 </Details>

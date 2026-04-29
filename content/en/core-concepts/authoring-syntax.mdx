@@ -25,6 +25,16 @@ Keep this page for syntax lookup. Use the components page when you need the rend
 - Write booleans explicitly as `required="true"` or `deprecated="true"` to keep migrations unambiguous.
 - If an example itself contains fenced code blocks, wrap the outer example in `~~~mdx`.
 
+## Page scaffold
+
+Start new pages with the CLI so required frontmatter is present before you write prose:
+
+```bash
+npm run typematter -- new --all-languages --slug guides/install --title.en "Install" --title.cn "安装" --section.en "Guides" --section.cn "指南"
+```
+
+Then replace the placeholder body, add the page to `nav.config.ts` if it should be pinned, and run `npm run validate:docs`.
+
 ## Directive index
 
 | Directive | Type | Use |

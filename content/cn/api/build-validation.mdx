@@ -5,34 +5,74 @@ section: API
 type: api
 status: experimental
 version: 0.4.0-rc
-description: 构建校验 API 参考，说明校验命令、CI 集成与阻断规则。
+description: 构建校验 API 参考，说明校验命令、CI 集成、阻断规则和常见修复方式。
 aliases:
   - 文档校验
   - validate docs
 ---
 
+Typematter 把文档质量视为构建的一部分。`npm run build` 会先执行校验，再进行静态导出。
+
 ## CLI
 
-- `typematter validate`
-- `typematter build` 会先执行校验
+```bash
+npm run validate:docs
+npm run validate:docs:strict
+npm run build
+```
 
-校验发生在 CI/CD 中，保障文档质量。
+- `validate:docs` 执行已配置的校验规则。
+- `validate:docs:strict` 会把已配置的 warning 提升为 error。
+- `build` 会先校验，再写入 registry、搜索资产和 `out/`。
 
-## 校验清单
+## 规则
 
-- 断链（内部路由与锚点）
-- 重复标题
-- 孤儿页面
-- 无效元信息字段
-- 空目录
+:::feature-matrix
+| 规则 | 级别 | 检查内容 |
+| --- | --- | --- |
+| 内部链接 | error | 路由和 hash 锚点必须存在。 |
+| 重复标题 | error | 同一内容集内页面标题不能重复。 |
+| 重复路由 | error | 两个文件不能解析到同一路由。 |
+| 孤儿页面 | error | 有效页面应能通过导航或 append 规则访问。 |
+| Frontmatter | error | 必填字段和配置的 schema 必须通过。 |
+| 空目录 | error | 内容目录不应留下无效结构。 |
+| 导航 | error | 导航项必须指向真实文档或有效外链。 |
+| i18n 结构 | error | 已配置语言应具备对应页面结构。 |
+| 缺失翻译 | error | 必填翻译 frontmatter 字段必须存在。 |
+| 标题层级 | error | 标题层级不应跳级或超过配置深度。 |
+| 文档类型约定 | error | 页面应使用对应类型推荐的语义组件。 |
+:::
+
+## 编写建议
+
+- 页面壳会从 frontmatter 渲染 H1；MDX 正文从摘要或 `##` 开始。
+- 使用 `npm run typematter -- new` 或 `npm run docs:new`，确保必填 frontmatter 一开始完整。
+- 内链只指向已经存在的真实路由。
+- 启用 i18n 时，保持 `title`、`section`、`description`、`type` 等字段有对应翻译。
+
+## 常见修复
+
+<DoDont title="校验修复">
+  <DoItem title="修源文件">
+    修改 MDX、frontmatter 或导航配置，然后重新运行 `npm run validate:docs`。
+  </DoItem>
+  <DontItem title="不要改生成物">
+    不要编辑 `out/`、`.typematter/` 或 `public/typematter/` 来绕过校验失败。
+  </DontItem>
+</DoDont>
 
 ## CI 集成
 
-在构建命令前运行 `validate:docs`，任何错误都会阻断构建。
+使用：
 
-<Callout type="warning" title="强制规则">
-任何重复路由会导致构建失败。
-</Callout>
+```bash
+npm run validate:docs
+npm run build
+```
 
+更严格的发布分支可使用：
 
-
+```bash
+npm run validate:docs:strict
+npm run build
+```

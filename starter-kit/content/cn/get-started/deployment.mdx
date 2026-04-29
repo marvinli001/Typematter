@@ -4,27 +4,52 @@ order: 3
 section: 开始使用
 type: guide
 pager: true
-description: Starter 部署说明，涵盖静态导出产物与基础托管流程。
+description: Starter 部署说明，涵盖静态导出、环境变量、校验、预览和托管方式。
 ---
 
-Typematter 当前默认使用 Next.js 静态导出模式，构建产物位于 `out/`。
+Typematter 会把站点静态导出到 `out/`。部署这个目录即可。
 
-## 推荐流程
+## 1. 配置生产 URL
 
-::: steps
-1. 设置 `TYPEMATTER_SITE_URL=https://docs.example.com`。
-2. 执行 `npm run build`。
-3. 将 `out/` 目录部署到任意静态托管平台。
+```bash
+cp .env.example .env.local
+```
+
+设置：
+
+```bash
+TYPEMATTER_SITE_URL=https://docs.example.com
+NEXT_PUBLIC_SITE_URL=https://docs.example.com
+```
+
+`TYPEMATTER_SITE_URL` 用于生成 `robots.txt` 和 `sitemap.xml`。
+
+## 2. 校验与构建
+
+:::steps
+1. 运行 `npm run validate:docs`。
+2. 运行 `npm run build`。
+3. 用 `npm start` 预览。
+4. 部署 `out/`。
 :::
 
-## 适合的托管方式
+## 3. 选择静态托管
 
 <Cards columns="3" mobileColumns="1">
-  <Card title="Vercel" description="直接构建并发布静态输出。" />
-  <Card title="Cloudflare Pages" description="适合全球静态分发。" />
-  <Card title="Nginx / OSS / S3" description="只要能托管 HTML/CSS/JS 即可。" />
+  <Card title="Vercel" description="Build command 为 npm run build，输出目录为 out。" />
+  <Card title="Cloudflare Pages" description="推送后构建并发布 out。" />
+  <Card title="Nginx / S3 / R2 / OSS" description="将 out 作为静态文件上传。" />
 </Cards>
 
-<Details summary="为什么需要 TYPEMATTER_SITE_URL">
-  它用于生成 `robots.txt` 和 `sitemap.xml` 里的完整绝对地址。
+## 可选 Ask AI
+
+不启用 Ask AI 时，文档站仍是完整静态站点。要启用 AI 页签，部署 `integrations/cloudflare-ask-ai-worker/` 中的 Worker，并设置：
+
+```bash
+NEXT_PUBLIC_TYPEMATTER_ASK_AI_ENDPOINT=https://your-worker-domain.workers.dev
+NEXT_PUBLIC_TYPEMATTER_ASK_AI_TIMEOUT_MS=25000
+```
+
+<Details summary="生成文件">
+  构建产物包含 `out/typematter/search/`、`out/typematter/ask-index.json`、`out/robots.txt` 和 `out/sitemap.xml`。
 </Details>

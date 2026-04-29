@@ -39,18 +39,15 @@ Cloudflare Worker endpoint for Typematter `Ask AI` tab.
 - 部署命令：`npx wrangler deploy --config integrations/cloudflare-ask-ai-worker/wrangler.toml`
 - 当前 `wrangler.toml` 已启用 `keep_vars = true`，会保留 Dashboard 中维护的 Variables。
 
-如果你在高级设置里把 Root directory 设为 `integrations/cloudflare-ask-ai-worker`，则可改为：
-
-- 构建命令：留空（可选）
-- 部署命令：`npx wrangler deploy`
+不建议把 Root directory 改成 `integrations/cloudflare-ask-ai-worker`，因为 Worker 入口复用了仓库根目录的 `lib/` 代码。
 
 ### 3) 配置环境变量与密钥
 
 在 Worker 项目 Settings → Variables and Secrets 中配置：
 
 - 普通变量（Variables）：
-  - `OPENAI_API_HOST=https://api.vistru.cn/v1`
-  - `OPENAI_MODEL=gpt-oss-120b`（或你的模型）
+  - `OPENAI_API_HOST=https://api.openai.com/v1`
+  - `OPENAI_MODEL=gpt-4.1-mini`（或你的模型）
   - `AI_SEARCH_INSTANCE=<你的 AI Search 实例名>`
   - `AI_SEARCH_RERANK_MODEL=@cf/baai/bge-reranker-base`（可选）
   - `DOCS_ORIGIN=https://<你的文档域名>`
@@ -73,19 +70,19 @@ Cloudflare Worker endpoint for Typematter `Ask AI` tab.
 1. 登录 Cloudflare：
    - `npm i -g wrangler`
    - `wrangler login`
-2. 进入本目录：
-   - `cd integrations/cloudflare-ask-ai-worker`
+2. 在仓库根目录执行部署命令：
+   - `wrangler deploy --config integrations/cloudflare-ask-ai-worker/wrangler.toml --keep-vars`
 3. 配置密钥：
-   - `wrangler secret put OPENAI_API_KEY`
+   - `wrangler secret put OPENAI_API_KEY --config integrations/cloudflare-ask-ai-worker/wrangler.toml`
 4. 本地创建环境文件（不要把真实值写进 `wrangler.toml`）：
-   - 复制 `.dev.vars.example` 为 `.dev.vars`
+   - 复制 `integrations/cloudflare-ask-ai-worker/.dev.vars.example` 为 `integrations/cloudflare-ask-ai-worker/.dev.vars`
    - 按需填写：
      - `DOCS_ORIGIN`
      - `OPENAI_API_HOST`
      - `OPENAI_MODEL`
      - `AI_SEARCH_INSTANCE`
-5. 部署：
-   - `wrangler deploy --keep-vars`
+
+说明：Worker 入口会复用根目录下的 `lib/typematter/search-utils`。从仓库根目录运行 wrangler 可以让依赖解析路径保持稳定。
 
 ## Typematter 站点侧配置
 

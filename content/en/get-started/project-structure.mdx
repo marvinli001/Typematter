@@ -5,23 +5,67 @@ section: Get started
 type: guide
 status: experimental
 version: 0.4.0-rc
-description: Recommended repository structure for content, app code, components, and docs logic.
+description: Recommended repository structure for Typematter content, configuration, shell code, integrations, and generated assets.
 aliases:
   - structure
   - repo layout
 ---
 
-The docs system focuses on content, build, and presentation. The directory hierarchy is the information architecture.
+Typematter separates authored content, project configuration, reusable docs shell code, and generated assets. Most teams only edit the first two groups after creating a starter project.
 
-## Suggested structure
+## Edit these first
 
 - `content/`: MDX content source of truth
-- `app/`: Next.js App Router
-- `components/`: docs UI components
-- `lib/`: parsing, navigation, TOC, and validation logic
+- `site.config.ts`: site title, URL, i18n, repository links, feedback URL, Ask AI copy, validation config
+- `nav.config.ts`: sidebar groups, display order, hidden items, external links
+- `.env.local`: production URL and optional Ask AI endpoint
 
-<Warning title="Avoid clutter">
-Do not add `prototype/` or temporary static site folders. All implementation should live in the real directories.
+## Docs shell code
+
+- `app/`: Next.js App Router entrypoints
+- `components/`: docs UI, MDX renderers, search, shell interactions
+- `components/mdx/component-registry.ts`: reusable MDX component exports
+- `components/mdx/component-style-registry.ts`: component style loading rules
+- `lib/`: content parsing, navigation, search, i18n, validation, plugins
+- `scripts/typematter.ts`: local CLI for init, dev, build, validation, registry export, and page scaffolding
+
+## Generated assets
+
+- `out/`: final static export; deploy this directory
+- `.typematter/`: registry and build cache
+- `public/typematter/`: generated search and Ask AI assets before export
+- `public/robots.txt` and `public/sitemap.xml`: generated from site config and routes
+
+<Warning title="Do not hand-edit generated files">
+Change MDX content, config, plugins, or components, then rebuild. Generated files are meant to be reproducible.
 </Warning>
 
+## Starter layout
 
+```text
+my-docs/
+  content/
+    en/
+      index.mdx
+      get-started/
+        quickstart.mdx
+    cn/
+      index.mdx
+  site.config.ts
+  nav.config.ts
+  app/
+  components/
+  lib/
+  scripts/
+```
+
+## When adding a component
+
+New semantic MDX components should update:
+
+- the React component under `components/mdx/`
+- `components/mdx/component-registry.ts`
+- `components/mdx/component-style-registry.ts`
+- the detector or directive transform when syntax changes
+- shared styles under `components/mdx/styles/`
+- docs under [Components](../core-concepts/components) and [Authoring Syntax](../core-concepts/authoring-syntax)

@@ -4,34 +4,61 @@ order: 2
 section: 开始使用
 type: guide
 pager: true
-description: Starter 快速开始，涵盖安装依赖和替换示例内容的最短路径。
+description: Starter 快速开始，涵盖安装依赖、创建页面、更新导航和文档校验。
 ---
 
-## 1. 安装依赖
+## 1. 安装并运行
 
 ```bash
+cp .env.example .env.local
 npm install
 npm run dev
 ```
 
-## 2. 替换示例内容
+## 2. 创建页面
 
-删除 starter 示例页面内容，按你的目录结构新建 MDX 页面。
+为所有已配置语言创建页面：
+
+```bash
+npm run typematter -- new --all-languages --slug guides/install --title.en "Install" --title.cn "安装" --section.en "Guides" --section.cn "指南"
+```
+
+只创建单个语言：
+
+```bash
+npm run typematter -- new --lang cn --slug guides/install --title "安装" --section "指南"
+```
+
+## 3. 替换示例内容
+
+你的 MDX 源文件位于 `content/`。
 
 ```text
 content/
   cn/
     index.mdx
-    get-started/
-      quickstart.mdx
+    guides/
+      install.mdx
   en/
     index.mdx
+    guides/
+      install.mdx
 ```
 
-## 3. 调整导航
+## 4. 更新导航
 
-导航配置在 `nav.config.ts`，它只负责展示顺序，不负责创造页面。
+`nav.config.ts` 控制分组、显示顺序、隐藏项和外链。它不创建页面，MDX 文件才创建页面。
 
-<Callout type="note" title="前提">
-每个页面至少需要 `title`、`order`、`section` 三个 frontmatter 字段。
+```ts
+{ type: "doc", slug: "guides/install" }
+```
+
+<Callout type="note" title="必填 frontmatter">
+默认校验器要求每个页面包含 `title`、`order`、`section`、`type` 和 `description`。
 </Callout>
+
+## 5. 校验
+
+```bash
+npm run validate:docs
+```

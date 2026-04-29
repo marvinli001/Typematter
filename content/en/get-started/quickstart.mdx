@@ -6,60 +6,103 @@ type: guide
 status: experimental
 version: 0.4.0-rc
 pager: true
-description: Quickstart guide for content structure, route generation, and component registration.
+description: Quickstart guide for creating a Typematter docs app, authoring MDX pages, and validating content before deployment.
 aliases:
   - getting started
   - quick start
 ---
 
-This page walks you through the content tree, route generation, and component registration.
+Use the official repository as the demo and reference implementation. For real docs, generate a separate starter project and edit that project.
 
-## 1. Directory structure
+## 1. Create a clean docs project
 
+Run this from the Typematter repository root:
+
+```bash
+npm install
+npm run typematter -- init --dir ../my-docs
+cd ../my-docs
+cp .env.example .env.local
+npm install
+npm run dev
 ```
+
+<Callout type="note" title="Target directory">
+`typematter init` copies the docs shell and starter content into a new directory. The target must be outside the official Typematter repository.
+</Callout>
+
+## 2. Know the content tree
+
+The starter is bilingual by default, so content lives under language folders:
+
+```text
 content/
-  get-started/
-    quickstart.mdx
-  core-concepts/
-    navigation.mdx
+  en/
+    index.mdx
+    get-started/
+      quickstart.mdx
+  cn/
+    index.mdx
+    get-started/
+      quickstart.mdx
 ```
 
-## 2. Add a page
+MDX files create pages. Folders and frontmatter describe the information hierarchy. `nav.config.ts` controls grouping, order, visibility, and external links.
+
+## 3. Create a page
+
+For both configured languages:
+
+```bash
+npm run typematter -- new --all-languages --slug guides/install --title.en "Install" --title.cn "安装" --section.en "Guides" --section.cn "指南"
+```
+
+For one language:
+
+```bash
+npm run typematter -- new --lang en --slug guides/install --title "Install" --section "Guides"
+```
+
+The command writes an MDX file with the required frontmatter:
 
 ```mdx
 ---
-title: Project structure
-order: 3
-section: Get started
-status: experimental
-version: 0.4.0-rc
+title: "Install"
+order: 100
+section: "Guides"
+type: "guide"
 pager: true
+description: "TODO: Add a short summary for Install."
 ---
-
-# Project structure
 ```
 
-<Callout type="note" title="Required fields">
-Every page must include `title`, `order`, and `section`. `status`, `version`, and `tags` are optional fields for status and label bubbles.
+<Callout type="warning" title="Translations">
+If i18n validation is enabled, adding only one language can fail validation until the matching translated page exists. Use `--all-languages` when you want the validator to stay green during drafting.
 </Callout>
 
-## 3. Diff example
+## 4. Pin it in navigation when needed
 
-<DiffBlock beforeLabel="v0.8" afterLabel="v0.9">
-  <DiffColumn>
-    <code>navStrategy: "manual"</code>
-    <p>Manually maintain the sidebar.</p>
-  </DiffColumn>
-  <DiffColumn highlight>
-    <code>navStrategy: "filesystem"</code>
-    <p>Navigation is generated from the directory structure.</p>
-  </DiffColumn>
-</DiffBlock>
+Pages are discovered from `content/`, but the sidebar is curated in `nav.config.ts`.
+
+```ts
+{ type: "doc", slug: "guides/install" }
+```
+
+Leave `appendUnlisted: true` enabled if you want valid pages that are not pinned in a group to appear automatically.
+
+## 5. Validate before deployment
+
+```bash
+npm run validate:docs
+npm run build
+```
+
+Validation checks links, heading anchors, duplicate titles, duplicate routes, orphan pages, metadata, translation structure, and doc-type conventions.
 
 ## Next steps
 
+- [Project structure](./project-structure)
 - [Navigation rules](../core-concepts/navigation)
+- [Authoring Syntax](../core-concepts/authoring-syntax)
 - [Components](../core-concepts/components)
 - [Deployment and starter workflow](./deployment)
-
-

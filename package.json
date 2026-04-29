@@ -1,7 +1,19 @@
 {
   "name": "typematter",
   "version": "0.4.0-rc",
+  "description": "Static-first MDX documentation shell with component-driven reading and Git-based content governance.",
   "private": true,
+  "license": "UNLICENSED",
+  "keywords": [
+    "documentation",
+    "mdx",
+    "nextjs",
+    "static-site",
+    "docs"
+  ],
+  "engines": {
+    "node": ">=20 <25"
+  },
   "bin": {
     "typematter": "bin/typematter.js"
   },
@@ -10,7 +22,10 @@
     "dev": "npm run typematter -- dev",
     "build": "npm run typematter -- build",
     "start": "npm run typematter -- serve",
+    "docs:new": "npm run typematter -- new",
     "validate:docs": "npm run typematter -- validate",
+    "validate:docs:strict": "npm run typematter -- validate --strict",
+    "check:docs": "npm run validate:docs && npm run build",
     "export:registry": "npm run typematter -- export-registry"
   },
   "dependencies": {

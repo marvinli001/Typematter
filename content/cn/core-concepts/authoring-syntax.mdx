@@ -25,6 +25,16 @@ aliases:
 - 布尔属性建议显式写成 `required="true"`、`deprecated="true"`，避免内容迁移时歧义。
 - 如果示例里还要再嵌套 Markdown 代码块，外层示例请用 `~~~mdx` 包住。
 
+## 页面脚手架
+
+新页面建议先用 CLI 生成，确保必填 frontmatter 一开始就是完整的：
+
+```bash
+npm run typematter -- new --all-languages --slug guides/install --title.en "Install" --title.cn "安装" --section.en "Guides" --section.cn "指南"
+```
+
+然后替换占位正文；如果页面需要固定到侧边栏，再加入 `nav.config.ts`；最后运行 `npm run validate:docs`。
+
 ## 指令一览
 
 | 指令 | 类型 | 用途 |

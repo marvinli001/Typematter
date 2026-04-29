@@ -6,125 +6,132 @@ type: guide
 status: experimental
 version: 0.4.0-rc
 pager: true
-description: 部署指南，涵盖静态导出产物、环境变量与托管平台选择。
+description: 部署指南，涵盖创建 starter 项目、文档校验、静态导出配置和 Typematter 静态托管流程。
 aliases:
   - 上线
   - 托管
 ---
 
-Typematter 当前走的是 **Next.js 静态导出** 路线，`npm run build` 后会输出完整静态站到 `out/`。
+Typematter 使用 **Next.js 静态导出**。`npm run build` 会先校验文档，再生成 registry、搜索资产和可部署站点，最终产物位于 `out/`。
 
-## 推荐的仓库模型
+## 推荐仓库模型
 
-Typematter 官方仓库更适合作为：
+把官方 Typematter 仓库当作维护中的 demo 和参考实现。正式团队或产品文档应生成独立 starter 仓库。
 
-- 官方文档站
-- 在线 demo
-- 组件与能力展示仓库
+```bash
+# 在官方 Typematter 仓库根目录执行。
+npm install
+npm run typematter -- init --dir ../my-docs
+cd ../my-docs
+```
 
-在实际采用时，建议为每个团队或产品生成独立文档仓库，而不是直接在官方仓库里继续编写业务文档。这样可以避免把官方示例、演示内容和业务内容混在一起，也更方便独立维护配置、内容和发布流程。
-
-<Callout type="info" title="推荐方式">
-将官方仓库视为参考实现或演示站；正式接入时，使用 `npm run typematter -- init --dir ../my-docs` 生成独立项目，再在新仓库中维护自己的文档内容。
+<Callout type="info" title="为什么要独立仓库">
+把业务文档放在官方仓库外，可以避免上游示例内容和自己的内容、配置、发布流程混在一起。
 </Callout>
 
-## 从官方仓库生成独立项目
+## 生产环境变量
 
-::: steps
-1. 克隆官方 Typematter 仓库。
-2. 在仓库外执行 `npm run typematter -- init --dir ../my-docs`。
-3. 进入新目录后运行 `npm install`、`npm run dev`。
-4. 用自己的内容替换 `content/`，再按实际信息架构修改 `site.config.ts` 和 `nav.config.ts`。
+复制 starter 环境变量文件：
+
+```bash
+cp .env.example .env.local
+```
+
+至少设置：
+
+```bash
+TYPEMATTER_SITE_URL=https://docs.example.com
+NEXT_PUBLIC_SITE_URL=https://docs.example.com
+```
+
+`TYPEMATTER_SITE_URL` 对生产环境是必需的，因为它会写入 `robots.txt` 和 `sitemap.xml`。如果缺失，生成文件会退回到示例域名。
+
+可选 Ask AI 变量：
+
+```bash
+NEXT_PUBLIC_TYPEMATTER_ASK_AI_ENDPOINT=https://your-worker-domain.workers.dev
+NEXT_PUBLIC_TYPEMATTER_ASK_AI_TIMEOUT_MS=25000
+# NEXT_PUBLIC_TYPEMATTER_ASK_AI_ENABLED=false
+```
+
+配置 endpoint 后 Ask AI 会启用。只有需要强制关闭时，才设置 `NEXT_PUBLIC_TYPEMATTER_ASK_AI_ENABLED=false`。
+
+## 构建与预览
+
+:::steps
+1. 运行 `npm run validate:docs`。
+2. 运行 `npm run build`。
+3. 用 `npm start` 预览静态产物。
+4. 部署 `out/` 目录。
 :::
 
-## 构建前需要哪些环境变量
+## 构建产物
 
-必填：
+导出前，Typematter 会在项目内写入生成资产：
 
-- `TYPEMATTER_SITE_URL=https://docs.example.com`
-
-可选但推荐：
-
-- `NEXT_PUBLIC_SITE_URL=https://docs.example.com`
-- `NEXT_PUBLIC_TYPEMATTER_ASK_AI_ENDPOINT=https://<your-worker-domain>`
-- `NEXT_PUBLIC_TYPEMATTER_ASK_AI_TIMEOUT_MS=25000`
-- `NEXT_PUBLIC_TYPEMATTER_ASK_AI_ENABLED=true`
-
-<Callout type="note" title="为什么最少只需要 TYPEMATTER_SITE_URL">
-它决定了构建时生成的 `robots.txt` 与 `sitemap.xml` 里写入什么域名。没配的话，构建会退回到示例域名。
-</Callout>
-
-## 生产部署步骤
-
-::: steps
-1. 复制 `.env.example`，填写站点域名和可选的 Ask AI 变量。
-2. 执行 `npm run validate:docs`，先确认内容、导航和链接全部通过校验。
-3. 执行 `npm run build`，生成静态站点与搜索产物。
-4. 将 `out/` 目录部署到静态托管平台。
-:::
-
-## 构建后会产出什么
-
-- `out/`：最终静态站点
-- `.typematter/registry.json`：内容 registry 缓存
-- `public/typematter/search/`：搜索清单、文档索引、分片
+- `.typematter/registry.json`
+- `public/typematter/search/`
+- `public/typematter/ask-index.json`
 - `public/robots.txt`
 - `public/sitemap.xml`
 
-## 适合的托管目标
+导出后，可部署副本位于 `out/`：
+
+- `out/`
+- `out/typematter/search/`
+- `out/typematter/ask-index.json`
+- `out/robots.txt`
+- `out/sitemap.xml`
+
+不要手动修改生成资产。需要变更时，修改 MDX、配置或插件后重新构建。
+
+## 托管目标
 
 <Cards columns="3" mobileColumns="1">
-  <Card title="Vercel" description="直接构建并发布静态输出目录。" />
-  <Card title="Cloudflare Pages" description="适合全球边缘静态分发。" />
-  <Card title="Nginx / OSS / S3" description="只要能托管 HTML、CSS、JS 即可。" />
+  <Card title="Vercel" description="使用静态导出的 out 目录发布。" />
+  <Card title="Cloudflare Pages" description="推送后自动构建并全球分发静态产物。" />
+  <Card title="Nginx / S3 / R2 / OSS" description="把 out 当作普通静态文件上传。" />
 </Cards>
 
 ### Vercel
 
 - Build Command: `npm run build`
 - Output Directory: `out`
-- Environment Variables: 至少配置 `TYPEMATTER_SITE_URL`
+- Environment Variables: `TYPEMATTER_SITE_URL`、`NEXT_PUBLIC_SITE_URL`、可选 Ask AI 变量
 
 ### Cloudflare Pages
 
 - Build Command: `npm run build`
 - Build Output Directory: `out`
-- 如果启用 Ask AI，再单独部署 `integrations/cloudflare-ask-ai-worker/`
+- Environment Variables: 同上
+- Ask AI Worker: 如需启用，单独部署 `integrations/cloudflare-ask-ai-worker/`
 
-### Nginx / OSS / S3
+### Nginx / S3 / R2 / OSS
 
-- 直接上传 `out/` 目录
-- 保持静态文件原样分发
-- 若使用自建 Nginx，可将站点根目录直接指向 `out/`
+- 在本地或 CI 运行 `npm run build`。
+- 上传 `out/` 的内容。
+- 确保托管服务能正常分发 HTML、CSS、JS、JSON、XML 和 TXT 文件。
 
-## 本地预览构建产物
+## Ask AI 是可选能力
 
-```bash
-npm run build
-npx serve out
-```
+无论是否启用 Ask AI，文档站本身都是完整静态站点。只有希望搜索弹窗出现 AI 回答页签时，才需要部署 Worker。
 
-## Ask AI 是额外步骤，不影响静态部署
-
-静态站点本身不依赖 Worker。只有在需要启用 Ask AI 时，才需要继续配置：
+参考实现：
 
 - `integrations/cloudflare-ask-ai-worker/README.md`
-- `NEXT_PUBLIC_TYPEMATTER_ASK_AI_ENDPOINT`
+- `integrations/cloudflare-ask-ai-worker/src/index.ts`
+- `integrations/cloudflare-ask-ai-worker/wrangler.toml`
 
 ## 常见问题
 
-### 为什么 `robots.txt` / `sitemap.xml` 里还是 `example.com`
+### `robots.txt` 或 `sitemap.xml` 仍指向 `example.com`
 
-因为构建时没有设置 `TYPEMATTER_SITE_URL`。
+在运行 `npm run build` 前设置 `TYPEMATTER_SITE_URL`。
 
-### 为什么构建时报 orphan page / broken link
+### 构建因孤儿页面或断链失败
 
-因为 Typematter 会在构建前执行文档质量校验。先运行 `npm run validate:docs`，再根据报错修正文档结构、导航或链接。
+运行 `npm run validate:docs`，按报告修正文档、导航或链接问题。
 
-### 需要一个不包含官方内容的干净项目
+### 我需要不包含官方内容的干净项目
 
-不要直接在官方仓库里继续编写业务文档；使用 `npm run typematter -- init --dir ../my-docs` 生成独立 starter 项目。
-
-<Details summary="为什么必须配置 TYPEMATTER_SITE_URL">
-  Typematter 会用它生成 `robots.txt` 和 `sitemap.xml` 中的绝对地址；不配的话会退回到示例域名。
-</Details>
+在官方仓库根目录运行 `npm run typematter -- init --dir ../my-docs`。目标目录必须位于官方仓库外部。

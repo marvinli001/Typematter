@@ -5,33 +5,74 @@ section: API
 type: api
 status: experimental
 version: 0.4.0-rc
-description: API reference for document validation commands, CI integration, and blocking rules.
+description: API reference for document validation commands, CI integration, blocking rules, and common fixes.
 aliases:
   - validate docs
   - validation
 ---
 
+Typematter treats documentation quality as part of the build. `npm run build` runs validation before static export.
+
 ## CLI
 
-- `typematter validate`
-- `typematter build` runs validation first
+```bash
+npm run validate:docs
+npm run validate:docs:strict
+npm run build
+```
 
-Validation runs in CI/CD to protect doc quality.
+- `validate:docs` runs configured validation rules.
+- `validate:docs:strict` promotes configured warnings to errors.
+- `build` validates first, then writes registry, search assets, and `out/`.
 
-## Checklist
+## Rules
 
-- Broken links (internal routes and anchors)
-- Duplicate titles
-- Orphan pages
-- Invalid frontmatter fields
-- Empty directories
+:::feature-matrix
+| Rule | Level | What it checks |
+| --- | --- | --- |
+| Internal links | error | Routes and hash anchors must resolve. |
+| Duplicate titles | error | Pages cannot reuse titles within the same content set. |
+| Duplicate routes | error | Two files cannot resolve to the same route. |
+| Orphan pages | error | Valid pages should be reachable through navigation or append rules. |
+| Frontmatter | error | Required fields and configured schemas must pass. |
+| Empty directories | error | Content directories should not contain dead structure. |
+| Navigation | error | Nav items must point to real docs or valid external URLs. |
+| i18n structure | error | Configured languages should contain matching page structure. |
+| Missing translations | error | Required translated frontmatter fields must exist. |
+| Heading depth | error | Heading levels should not skip hierarchy or exceed configured depth. |
+| Doc type conventions | error | Pages should use semantic components recommended for their type. |
+:::
+
+## Authoring guidance
+
+- Let the page shell render the H1 from frontmatter; start MDX bodies at summary text or `##`.
+- Use `npm run typematter -- new` or `npm run docs:new` so required frontmatter is present.
+- Use real internal routes, not future placeholders.
+- Keep `title`, `section`, `description`, and `type` translated when i18n is enabled.
+
+## Common fixes
+
+<DoDont title="Validation fixes">
+  <DoItem title="Fix the source">
+    Update the MDX file, frontmatter, or navigation config, then rerun `npm run validate:docs`.
+  </DoItem>
+  <DontItem title="Patch generated files">
+    Do not edit `out/`, `.typematter/`, or `public/typematter/` to silence validation failures.
+  </DontItem>
+</DoDont>
 
 ## CI integration
 
-Run `validate:docs` before the build. Any error blocks the build.
+Use:
 
-<Callout type="warning" title="Strict rule">
-Any duplicate route will fail the build.
-</Callout>
+```bash
+npm run validate:docs
+npm run build
+```
 
+For stricter release branches:
 
+```bash
+npm run validate:docs:strict
+npm run build
+```

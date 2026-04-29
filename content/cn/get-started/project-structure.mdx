@@ -5,24 +5,67 @@ section: 开始使用
 type: guide
 status: experimental
 version: 0.4.0-rc
-description: 推荐的仓库目录结构，覆盖内容、应用代码、组件和文档逻辑。
+description: 推荐的 Typematter 仓库结构，覆盖内容、配置、文档壳代码、集成和生成资产。
 aliases:
   - 目录结构
   - 仓库结构
 ---
 
-文档系统只关注内容、构建与呈现，目录层级即信息架构。
+Typematter 把作者内容、项目配置、可复用文档壳代码和生成资产分开。创建 starter 项目后，多数团队主要编辑前两类。
 
-## 建议目录
+## 优先编辑
 
 - `content/`：MDX 内容唯一来源
-- `app/`：Next.js App Router
-- `components/`：文档 UI 组件
-- `lib/`：解析、导航、TOC 与校验逻辑
+- `site.config.ts`：站点标题、URL、i18n、仓库链接、反馈入口、Ask AI 文案、校验配置
+- `nav.config.ts`：侧边栏分组、显示顺序、隐藏项、外链
+- `.env.local`：生产站点 URL 和可选 Ask AI endpoint
 
-<Warning title="避免混乱">
-不要引入 `prototype/` 或临时静态站目录，所有实现应归入正式目录。
+## 文档壳代码
+
+- `app/`：Next.js App Router 入口
+- `components/`：文档 UI、MDX 渲染、搜索、壳层交互
+- `components/mdx/component-registry.ts`：可复用 MDX 组件导出
+- `components/mdx/component-style-registry.ts`：组件样式加载规则
+- `lib/`：内容解析、导航、搜索、i18n、校验、插件
+- `scripts/typematter.ts`：本地 CLI，负责 init、dev、build、校验、registry 导出和页面脚手架
+
+## 生成资产
+
+- `out/`：最终静态导出产物，部署这个目录
+- `.typematter/`：registry 与构建缓存
+- `public/typematter/`：导出前生成的搜索与 Ask AI 资产
+- `public/robots.txt` 和 `public/sitemap.xml`：根据站点配置和路由生成
+
+<Warning title="不要手动修改生成文件">
+需要变更时，修改 MDX 内容、配置、插件或组件，然后重新构建。生成文件应保持可复现。
 </Warning>
 
+## starter 布局
 
+```text
+my-docs/
+  content/
+    cn/
+      index.mdx
+      get-started/
+        quickstart.mdx
+    en/
+      index.mdx
+  site.config.ts
+  nav.config.ts
+  app/
+  components/
+  lib/
+  scripts/
+```
 
+## 添加组件时
+
+新增语义化 MDX 组件应同步更新：
+
+- `components/mdx/` 下的 React 组件
+- `components/mdx/component-registry.ts`
+- `components/mdx/component-style-registry.ts`
+- 语法变化涉及的 detector 或 directive transform
+- `components/mdx/styles/` 下的共享样式
+- [组件规范](../core-concepts/components) 和 [指令速查表](../core-concepts/authoring-syntax)
